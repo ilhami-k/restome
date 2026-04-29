@@ -2,9 +2,21 @@
   "expo": {
     "name": "restome",
     "slug": "restome",
+    "scheme": "restome",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow RestoMe to access your camera to scan table QR codes."
+        }
+      ],
+      "expo-router",
+      "expo-secure-store",
+      "expo-sqlite"
+    ]
   }
 }
