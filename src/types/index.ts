@@ -72,6 +72,7 @@ export interface StatusUpdate {
 }
 
 export interface CartItem {
+  cart_item_id: string;
   menu_item_id: string;
   menu_item: MenuItem;
   quantity: number;

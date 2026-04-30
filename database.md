@@ -104,6 +104,11 @@ One order row per session. Created lazily on first item submission.
 | status | text | not null, check(status in ('open','closed','paid')) |
 | created_at | timestamptz | default now() |
 
+**Constraint**
+```sql
+alter table orders add constraint orders_session_id_key unique (session_id);
+```
+
 ---
 
 ### `order_items`
@@ -189,6 +194,12 @@ CREATE TABLE IF NOT EXISTS order_history (
   menu_item_id TEXT NOT NULL,
   menu_item_name TEXT NOT NULL,
   ordered_at TEXT NOT NULL
+);
+
+-- Local allergen preferences
+CREATE TABLE IF NOT EXISTS user_allergens (
+  allergen_id TEXT PRIMARY KEY,
+  allergen_name TEXT NOT NULL
 );
 ```
 

@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { ACTIVE_ITEM_STATUSES } from '../types';
-import type { ItemStatus, Order, OrderItem } from '../types';
+import type { ItemStatus, Order, OrderItem, StatusUpdate } from '../types';
 
 export interface NewOrderItemInput {
   order_id: string;
@@ -31,11 +31,23 @@ export async function createOpenOrder(sessionId: string): Promise<Order> {
     .select()
     .single();
 
+  if (error && isUniqueViolation(error)) {
+    const existingOrder = await findOpenOrderBySessionId(sessionId);
+    if (existingOrder) {
+      return existingOrder;
+    }
+  }
+
   if (error || !data) {
     throw error ?? new Error('Failed to create order');
   }
 
   return data as Order;
+}
+
+export async function getOrCreateOpenOrder(sessionId: string): Promise<Order> {
+  const existingOrder = await findOpenOrderBySessionId(sessionId);
+  return existingOrder ?? createOpenOrder(sessionId);
 }
 
 export async function insertOrderItems(items: NewOrderItemInput[]): Promise<void> {
@@ -59,12 +71,12 @@ export async function fetchLiveOrderItems(orderId: string): Promise<OrderItem[]>
   return (data ?? []) as OrderItem[];
 }
 
-export function subscribeToSessionOrderItems(sessionId: string, onChange: () => void) {
+export function subscribeToOrderItems(orderId: string, onChange: () => void) {
   const channel = supabase
-    .channel(`order_items:${sessionId}`)
+    .channel(`order_items:${orderId}`)
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'order_items' },
+      { event: '*', schema: 'public', table: 'order_items', filter: `order_id=eq.${orderId}` },
       () => {
         onChange();
       }
@@ -121,6 +133,24 @@ export async function createStatusUpdate(orderItemId: string, message: string): 
   }
 }
 
+export async function fetchStatusUpdates(orderItemIds: string[]): Promise<StatusUpdate[]> {
+  if (orderItemIds.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('status_updates')
+    .select('*')
+    .in('order_item_id', orderItemIds)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as StatusUpdate[];
+}
+
 export function subscribeToKitchenOrderItems(onChange: () => void) {
   const channel = supabase
     .channel('kitchen_order_items')
@@ -136,10 +166,14 @@ export function subscribeToKitchenOrderItems(onChange: () => void) {
 
 export function subscribeToStatusUpdates(
   orderItemIds: string[],
-  onUpdate: (itemId: string, status: ItemStatus, message?: string) => void
+  onUpdate: (update: StatusUpdate) => void
 ) {
+  if (orderItemIds.length === 0) {
+    return () => {};
+  }
+
   const channel = supabase
-    .channel('status_updates')
+    .channel(`status_updates:${orderItemIds.join(':')}`)
     .on(
       'postgres_changes',
       {
@@ -149,8 +183,7 @@ export function subscribeToStatusUpdates(
         filter: `order_item_id=in.(${orderItemIds.join(',')})`,
       },
       (payload) => {
-        const newRecord = payload.new as { order_item_id: string; message: string | null };
-        onUpdate(newRecord.order_item_id, 'ready', newRecord.message ?? undefined);
+        onUpdate(payload.new as StatusUpdate);
       }
     )
     .subscribe();
@@ -158,4 +191,8 @@ export function subscribeToStatusUpdates(
   return () => {
     void supabase.removeChannel(channel);
   };
+}
+
+function isUniqueViolation(error: { code?: string }): boolean {
+  return error.code === '23505';
 }

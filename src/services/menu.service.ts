@@ -5,6 +5,14 @@ type MenuRow = Omit<MenuItem, 'allergens'> & {
   allergens?: Array<{ allergen: Allergen | null }>;
 };
 
+export interface MenuItemInput {
+  name: string;
+  price: number;
+  category: Category;
+  image_url: string | null;
+  allergenIds: string[];
+}
+
 function mapMenuRow(row: MenuRow): MenuItem {
   return {
     ...row,
@@ -32,14 +40,14 @@ export async function fetchMenuItems(category?: Category): Promise<MenuItem[]> {
 export async function fetchKitchenMenuItems(): Promise<MenuItem[]> {
   const { data, error } = await supabase
     .from('menu_items')
-    .select('*')
+    .select('*, allergens:menu_item_allergens(allergen:allergens(id, name))')
     .order('created_at', { ascending: false });
 
   if (error) {
     throw error;
   }
 
-  return (data ?? []) as MenuItem[];
+  return ((data ?? []) as MenuRow[]).map(mapMenuRow);
 }
 
 export async function updateMenuItemAvailability(menuItemId: string, available: boolean): Promise<void> {
@@ -50,6 +58,70 @@ export async function updateMenuItemAvailability(menuItemId: string, available: 
 
   if (error) {
     throw error;
+  }
+}
+
+export async function createMenuItem(input: MenuItemInput): Promise<void> {
+  const { data, error } = await supabase
+    .from('menu_items')
+    .insert({
+      name: input.name,
+      price: input.price,
+      category: input.category,
+      image_url: input.image_url,
+      available: true,
+    })
+    .select('id')
+    .single();
+
+  if (error || !data) {
+    throw error ?? new Error('Failed to create menu item');
+  }
+
+  await replaceMenuItemAllergens(data.id as string, input.allergenIds);
+}
+
+export async function updateMenuItem(menuItemId: string, input: MenuItemInput): Promise<void> {
+  const { error } = await supabase
+    .from('menu_items')
+    .update({
+      name: input.name,
+      price: input.price,
+      category: input.category,
+      image_url: input.image_url,
+    })
+    .eq('id', menuItemId);
+
+  if (error) {
+    throw error;
+  }
+
+  await replaceMenuItemAllergens(menuItemId, input.allergenIds);
+}
+
+async function replaceMenuItemAllergens(menuItemId: string, allergenIds: string[]): Promise<void> {
+  const { error: deleteError } = await supabase
+    .from('menu_item_allergens')
+    .delete()
+    .eq('menu_item_id', menuItemId);
+
+  if (deleteError) {
+    throw deleteError;
+  }
+
+  if (allergenIds.length === 0) {
+    return;
+  }
+
+  const { error: insertError } = await supabase.from('menu_item_allergens').insert(
+    allergenIds.map((allergenId) => ({
+      menu_item_id: menuItemId,
+      allergen_id: allergenId,
+    }))
+  );
+
+  if (insertError) {
+    throw insertError;
   }
 }
 
@@ -64,6 +136,20 @@ export async function fetchAllergens(): Promise<Allergen[]> {
   }
 
   return (data ?? []) as Allergen[];
+}
+
+export async function createAllergen(name: string): Promise<Allergen> {
+  const { data, error } = await supabase
+    .from('allergens')
+    .insert({ name })
+    .select('id, name')
+    .single();
+
+  if (error || !data) {
+    throw error ?? new Error('Failed to create allergen');
+  }
+
+  return data as Allergen;
 }
 
 export function subscribeToMenuAvailability(onUpdate: (menuItemId: string, available: boolean) => void) {

@@ -24,20 +24,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = useCallback((menuItem: MenuItem, quantity: number, notes: string) => {
     setItems((prev) => {
-      const existing = prev.find((i) => i.menu_item_id === menuItem.id);
+      const normalizedNotes = notes.trim();
+      const existing = prev.find((i) => i.menu_item_id === menuItem.id && i.notes === normalizedNotes);
       if (existing) {
         return prev.map((i) =>
-          i.menu_item_id === menuItem.id
-            ? { ...i, quantity: i.quantity + quantity, notes: notes || i.notes }
+          i.cart_item_id === existing.cart_item_id
+            ? { ...i, quantity: i.quantity + quantity }
             : i
         );
       }
-      return [...prev, { menu_item_id: menuItem.id, menu_item: menuItem, quantity, notes }];
+      return [
+        ...prev,
+        {
+          cart_item_id: `${menuItem.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          menu_item_id: menuItem.id,
+          menu_item: menuItem,
+          quantity,
+          notes: normalizedNotes,
+        },
+      ];
     });
   }, []);
 
-  const removeItem = useCallback((menuItemId: string) => {
-    setItems((prev) => prev.filter((i) => i.menu_item_id !== menuItemId));
+  const removeItem = useCallback((cartItemId: string) => {
+    setItems((prev) => prev.filter((i) => i.cart_item_id !== cartItemId));
   }, []);
 
   const clearCart = useCallback(() => {

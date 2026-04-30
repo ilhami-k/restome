@@ -58,7 +58,7 @@ export default function OrderSummaryScreen() {
 
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         {items.map((item) => (
-          <View key={item.menu_item_id} style={styles.row}>
+          <View key={item.cart_item_id} style={styles.row}>
             <View style={styles.thumb}>
               {item.menu_item.image_url ? (
                 <Image source={{ uri: item.menu_item.image_url }} style={styles.thumbImage} />
@@ -75,7 +75,7 @@ export default function OrderSummaryScreen() {
               <Text style={styles.itemPrice}>{formatPrice(item.menu_item.price * item.quantity)}</Text>
               <Pressable
                 style={({ pressed }) => pressed && styles.pressed}
-                onPress={() => removeItem(item.menu_item_id)}
+                onPress={() => removeItem(item.cart_item_id)}
               >
                 <Text style={styles.remove}>Retirer</Text>
               </Pressable>

@@ -19,7 +19,7 @@ const STATUS_COLORS: Record<ItemStatus, string> = {
 export default function LiveOrderScreen() {
   const router = useRouter();
   const { session, table } = useSession();
-  const { items } = useLiveOrder(session?.id);
+  const { items, messagesByItemId } = useLiveOrder(session?.id);
   const [animated, setAnimated] = useState(true);
 
   useEffect(() => {
@@ -53,6 +53,9 @@ export default function LiveOrderScreen() {
               <View>
                 <Text style={styles.itemName}>{item.menu_item?.name ?? 'Article'}</Text>
                 {item.notes ? <Text style={styles.itemNotes}>“{item.notes}”</Text> : null}
+                {messagesByItemId[item.id] ? (
+                  <Text style={styles.itemMessage}>{messagesByItemId[item.id]}</Text>
+                ) : null}
               </View>
             </View>
             <View style={[styles.badge, { backgroundColor: STATUS_COLORS[item.status] + '20' }]}>
@@ -152,6 +155,11 @@ const styles = StyleSheet.create({
     color: Colors.customerTextSecondary,
     fontStyle: 'italic',
     marginTop: 2,
+  },
+  itemMessage: {
+    fontSize: 12,
+    color: Colors.primaryDark,
+    marginTop: 4,
   },
   badge: {
     paddingHorizontal: 10,

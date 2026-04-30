@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
 import { addOrderHistory } from '../../../lib/db';
-import { createOpenOrder, findOpenOrderBySessionId, insertOrderItems } from '../../../services/orders.service';
+import { buildOrderItemInputs } from '../../../services/order-items.mapper';
+import { getOrCreateOpenOrder, insertOrderItems } from '../../../services/orders.service';
 import type { CartItem, Session } from '../../../types';
 
 export function useSubmitOrder() {
@@ -12,20 +13,13 @@ export function useSubmitOrder() {
     setSubmitting(true);
 
     try {
-      const existingOrder = await findOpenOrderBySessionId(session.id);
-      const order = existingOrder ?? (await createOpenOrder(session.id));
-
-      await insertOrderItems(
-        items.map((item) => ({
-          order_id: order.id,
-          menu_item_id: item.menu_item_id,
-          notes: item.notes || null,
-          status: 'pending',
-        }))
-      );
+      const order = await getOrCreateOpenOrder(session.id);
+      await insertOrderItems(buildOrderItemInputs(order.id, items));
 
       for (const item of items) {
-        await addOrderHistory(db, item.menu_item_id, item.menu_item.name);
+        for (let index = 0; index < item.quantity; index += 1) {
+          await addOrderHistory(db, item.menu_item_id, item.menu_item.name);
+        }
       }
     } finally {
       setSubmitting(false);

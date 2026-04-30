@@ -1,22 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchKitchenMenuItems, updateMenuItemAvailability } from '../../../services/menu.service';
+import {
+  createAllergen,
+  createMenuItem,
+  fetchAllergens,
+  fetchKitchenMenuItems,
+  updateMenuItem,
+  updateMenuItemAvailability,
+  type MenuItemInput,
+} from '../../../services/menu.service';
 import { CATEGORIES } from '../../../types';
-import type { MenuItem } from '../../../types';
+import type { Allergen, MenuItem } from '../../../types';
 
 export function useKitchenMenuItems(search: string) {
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [allergens, setAllergens] = useState<Allergen[]>([]);
 
   useEffect(() => {
     let mounted = true;
 
-    async function loadItems() {
-      const nextItems = await fetchKitchenMenuItems();
+    async function loadData() {
+      const [nextItems, nextAllergens] = await Promise.all([fetchKitchenMenuItems(), fetchAllergens()]);
       if (mounted) {
         setItems(nextItems);
+        setAllergens(nextAllergens);
       }
     }
 
-    void loadItems();
+    void loadData();
 
     return () => {
       mounted = false;
@@ -44,5 +54,29 @@ export function useKitchenMenuItems(search: string) {
     );
   }
 
-  return { filteredItems, itemsByCategory, categoryOrder: CATEGORIES, toggleItemAvailability };
+  async function saveMenuItem(input: MenuItemInput, itemId?: string) {
+    if (itemId) {
+      await updateMenuItem(itemId, input);
+    } else {
+      await createMenuItem(input);
+    }
+
+    setItems(await fetchKitchenMenuItems());
+  }
+
+  async function addAllergen(name: string) {
+    const allergen = await createAllergen(name);
+    setAllergens((current) => [...current, allergen].sort((left, right) => left.name.localeCompare(right.name, 'fr')));
+    return allergen;
+  }
+
+  return {
+    allergens,
+    filteredItems,
+    itemsByCategory,
+    categoryOrder: CATEGORIES,
+    toggleItemAvailability,
+    saveMenuItem,
+    addAllergen,
+  };
 }
