@@ -9,6 +9,7 @@ import { KitchenMessages } from '../../../constants/messages';
 import { KITCHEN_STATUS_FILTERS } from '../../../constants/ui';
 import { OrderCard } from '../components/OrderCard';
 import { useKitchenOrders } from '../hooks/useKitchenOrders';
+import { useKitchenSessions } from '../hooks/useKitchenSessions';
 import type { ItemStatus } from '../../../types';
 
 export default function KitchenDashboardScreen() {
@@ -16,6 +17,7 @@ export default function KitchenDashboardScreen() {
   const { logout } = useAuth();
   const [filter, setFilter] = useState<ItemStatus | 'all'>('all');
   const { stats, groupedOrders, setItemStatus } = useKitchenOrders(filter);
+  const { sessions, closeOpenSession } = useKitchenSessions();
 
   function markUnavailable(itemId: string) {
     Alert.alert('Marquer indisponible', "Notifier le client que l'article n'est pas disponible ?", [
@@ -29,13 +31,30 @@ export default function KitchenDashboardScreen() {
     ]);
   }
 
+  function confirmCloseSession(sessionId: string, tableNumber?: number) {
+    Alert.alert(
+      'Fermer la session',
+      `Fermer la session${tableNumber ? ` de la table ${tableNumber}` : ''} ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Fermer',
+          style: 'destructive',
+          onPress: () => {
+            void closeOpenSession(sessionId);
+          },
+        },
+      ]
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="light" />
 
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <View>
+          <View style={styles.titleBlock}>
             <Text style={styles.headerLabel}>CUISINE</Text>
             <Text style={styles.headerTitle}>Commandes en direct</Text>
           </View>
@@ -46,7 +65,7 @@ export default function KitchenDashboardScreen() {
             </View>
             <Pressable
               style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
-              onPress={() => router.push('/(kitchen)/menu-manager')}
+              onPress={() => router.push('/menu-manager')}
             >
               <Text style={styles.menuButtonText}>Menu</Text>
             </Pressable>
@@ -62,6 +81,10 @@ export default function KitchenDashboardScreen() {
         </View>
 
         <View style={styles.stats}>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{sessions.length}</Text>
+            <Text style={styles.statLabel}>SESSIONS</Text>
+          </View>
           <View style={styles.statBox}>
             <Text style={styles.statNumber}>{stats.pending}</Text>
             <Text style={styles.statLabel}>EN ATTENTE</Text>
@@ -101,6 +124,27 @@ export default function KitchenDashboardScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        <View style={styles.sessionSection}>
+          <Text style={styles.sectionTitle}>SESSIONS OUVERTES</Text>
+          {sessions.map((session) => (
+            <View key={session.id} style={styles.sessionRow}>
+              <View style={styles.sessionInfo}>
+                <Text style={styles.sessionTitle}>Table {session.table?.number ?? '-'}</Text>
+                <Text style={styles.sessionMeta}>
+                  Ouverte à {new Date(session.created_at).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+              <Pressable
+                style={({ pressed }) => [styles.closeSessionButton, pressed && styles.pressed]}
+                onPress={() => confirmCloseSession(session.id, session.table?.number)}
+              >
+                <Text style={styles.closeSessionText}>Fermer</Text>
+              </Pressable>
+            </View>
+          ))}
+          {sessions.length === 0 ? <Text style={styles.emptyInline}>Aucune session ouverte</Text> : null}
+        </View>
+
         {groupedOrders.map((group) => (
           <OrderCard
             key={`${group.tableNumber}-${group.createdAt}`}
@@ -132,6 +176,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    gap: 12,
+  },
+  titleBlock: {
+    flex: 1,
+    minWidth: 0,
   },
   headerLabel: {
     fontSize: 11,
@@ -139,15 +188,15 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: Colors.white,
     marginTop: 2,
   },
   headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    alignItems: 'flex-end',
+    flexShrink: 0,
+    gap: 6,
   },
   liveBadge: {
     flexDirection: 'row',
@@ -185,11 +234,13 @@ const styles = StyleSheet.create({
   },
   stats: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 12,
   },
   statBox: {
-    flex: 1,
+    flexBasis: '48%',
+    flexGrow: 1,
     backgroundColor: Colors.kitchenCard,
     borderRadius: 10,
     paddingVertical: 10,
@@ -232,10 +283,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 24,
   },
+  sessionSection: {
+    marginBottom: 18,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    color: Colors.kitchenTextSecondary,
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  sessionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.kitchenCard,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+    gap: 10,
+  },
+  sessionInfo: {
+    flex: 1,
+  },
+  sessionTitle: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  sessionMeta: {
+    color: Colors.kitchenTextSecondary,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  closeSessionButton: {
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    backgroundColor: Colors.statusUnavailable + '20',
+  },
+  closeSessionText: {
+    color: Colors.statusUnavailable,
+    fontSize: 12,
+    fontWeight: '700',
+  },
   empty: {
     color: Colors.kitchenTextSecondary,
     textAlign: 'center',
     marginTop: 40,
+  },
+  emptyInline: {
+    color: Colors.kitchenTextSecondary,
+    fontSize: 13,
+    marginBottom: 8,
   },
   pressed: {
     opacity: 0.8,

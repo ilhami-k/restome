@@ -20,6 +20,8 @@ import { useSession } from '../../../contexts/SessionContext';
 import { Colors } from '../../../constants/colors';
 import { useTableSession } from '../hooks/useTableSession';
 
+const KITCHEN_QR_CODE = 'KITCHEN_001';
+
 export default function QRScanScreen() {
   const router = useRouter();
   const { setSessionData } = useSession();
@@ -39,13 +41,20 @@ export default function QRScanScreen() {
 
   const processQrCode = useCallback(
     async (qrCode: string) => {
-      if (!qrCode.trim()) {
+      const trimmedCode = qrCode.trim();
+
+      if (!trimmedCode) {
         Alert.alert('Code manquant', 'Saisissez un QR code de table valide.');
         return;
       }
 
+      if (trimmedCode === KITCHEN_QR_CODE) {
+        router.replace('/login');
+        return;
+      }
+
       try {
-        const result = await resolveSession(qrCode);
+        const result = await resolveSession(trimmedCode);
 
         if (result.joinedExisting) {
           Alert.alert(
@@ -76,7 +85,7 @@ export default function QRScanScreen() {
         Alert.alert('Erreur', "Impossible de démarrer une session pour cette table.");
       }
     },
-    [goToMenu, resolveSession, setSessionData]
+    [goToMenu, resolveSession, router, setSessionData]
   );
 
   const handleBarCode = useCallback(

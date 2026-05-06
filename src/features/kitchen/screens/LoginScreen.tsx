@@ -36,7 +36,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(email.trim(), password.trim());
-      router.replace('/(kitchen)/dashboard');
+      router.replace('/dashboard');
     } catch {
       Alert.alert('Connexion impossible', 'Identifiants invalides.');
     } finally {

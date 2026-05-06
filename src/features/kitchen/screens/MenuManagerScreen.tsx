@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -27,6 +27,7 @@ const emptyForm: MenuFormState = {
 
 export default function MenuManagerScreen() {
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<MenuFormState>(emptyForm);
   const [customAllergenName, setCustomAllergenName] = useState('');
@@ -58,6 +59,7 @@ export default function MenuManagerScreen() {
       imageUrl: item.image_url ?? '',
       allergenIds: item.allergens?.map((allergen) => allergen.id) ?? [],
     });
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
   }
 
   function toggleFormAllergen(allergenId: string) {
@@ -137,7 +139,7 @@ export default function MenuManagerScreen() {
         />
       </View>
 
-      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         <View style={styles.formCard}>
           <Text style={styles.formTitle}>{form.id ? 'Modifier un article' : 'Ajouter un article'}</Text>
           <TextInput
@@ -256,10 +258,12 @@ export default function MenuManagerScreen() {
                       {item.available ? 'Visible dans le menu' : 'Masqué côté client'}
                     </Text>
                   </View>
-                  <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
-                  <Pressable style={({ pressed }) => [styles.editButton, pressed && styles.pressed]} onPress={() => editItem(item)}>
-                    <Text style={styles.editButtonText}>Editer</Text>
-                  </Pressable>
+                  <View style={styles.rowActions}>
+                    <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+                    <Pressable style={({ pressed }) => [styles.editButton, pressed && styles.pressed]} onPress={() => editItem(item)}>
+                      <Text style={styles.editButtonText}>Editer</Text>
+                    </Pressable>
+                  </View>
                 </View>
               ))}
             </View>
@@ -439,6 +443,7 @@ const styles = StyleSheet.create({
   rowContent: {
     flex: 1,
     marginLeft: 10,
+    minWidth: 0,
   },
   itemName: {
     fontSize: 14,
@@ -454,7 +459,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: Colors.primary,
-    marginRight: 10,
+    textAlign: 'right',
+  },
+  rowActions: {
+    alignItems: 'flex-end',
+    gap: 6,
+    marginLeft: 8,
   },
   editButton: {
     borderRadius: 8,
