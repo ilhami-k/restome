@@ -1,17 +1,19 @@
 import React from 'react';
 import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../../../constants/colors';
+import { Colors, type CustomerColors } from '../../../constants/colors';
 import { formatPrice } from '../../../constants/ui';
 import type { MenuItem } from '../../../types';
 
 interface MenuItemRowProps {
   item: MenuItem;
+  colors: CustomerColors;
   matchingAllergens: string[];
   onOpen: (itemId: string) => void;
 }
 
 export const MenuItemRow = React.memo(function MenuItemRow({
   item,
+  colors,
   matchingAllergens,
   onOpen,
 }: MenuItemRowProps) {
@@ -22,19 +24,19 @@ export const MenuItemRow = React.memo(function MenuItemRow({
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.row, { backgroundColor: colors.surface }, pressed && styles.pressed]}
       onPress={() => onOpen(item.id)}
     >
-      <View style={styles.thumbPlaceholder}>
+      <View style={[styles.thumbPlaceholder, { backgroundColor: colors.background }]}>
         {item.image_url ? <Image source={{ uri: item.image_url }} style={styles.thumbImage} /> : null}
       </View>
       <View style={styles.rowContent}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemDesc} numberOfLines={2}>
+        <Text style={[styles.itemName, { color: colors.text }]}>{item.name}</Text>
+        <Text style={[styles.itemDesc, { color: colors.textSecondary }]} numberOfLines={2}>
           {allergenLabel}
         </Text>
         {matchingAllergens.length > 0 ? (
-          <View style={styles.warningBadge}>
+          <View style={[styles.warningBadge, { backgroundColor: colors.unavailableBackground }]}>
             <Text style={styles.warningBadgeText}>Contient: {matchingAllergens.join(', ')}</Text>
           </View>
         ) : null}
@@ -52,8 +54,13 @@ export const MenuItemRow = React.memo(function MenuItemRow({
             <Text style={styles.addButtonText}>+</Text>
           </Pressable>
         ) : (
-          <View style={styles.unavailableBadge}>
+          <View style={[styles.unavailableBadge, { backgroundColor: colors.banner }]}>
             <Text style={styles.unavailableText}>Indisponible</Text>
+            {item.availability_message ? (
+              <Text style={[styles.unavailableMessage, { color: colors.textSecondary }]}>
+                {item.availability_message}
+              </Text>
+            ) : null}
           </View>
         )}
       </View>
@@ -152,6 +159,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: Colors.statusUnavailable,
+  },
+  unavailableMessage: {
+    fontSize: 10,
+    marginTop: 2,
+    maxWidth: 110,
   },
   pressed: {
     opacity: 0.8,

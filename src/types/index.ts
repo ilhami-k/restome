@@ -42,6 +42,7 @@ export interface MenuItem {
   price: number;
   category: Category;
   available: boolean;
+  availability_message?: string | null;
   image_url: string | null;
   created_at: string;
   allergens?: Allergen[];

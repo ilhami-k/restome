@@ -5,31 +5,38 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useCart } from '../../../contexts/CartContext';
 import { useSession } from '../../../contexts/SessionContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { useUserSettings } from '../../../contexts/UserSettingsContext';
-import { Colors } from '../../../constants/colors';
+import { Colors, getCustomerColors } from '../../../constants/colors';
 import { CUSTOMER_CATEGORY_FILTERS, formatPrice, getMatchingAllergens } from '../../../constants/ui';
 import type { Category, MenuItem } from '../../../types';
 import { CartBar } from '../components/CartBar';
 import { MenuItemRow } from '../components/MenuItemRow';
 import { useMenuAvailabilityRealtime } from '../hooks/useMenuAvailabilityRealtime';
 import { useMenuItems } from '../hooks/useMenuItems';
+import { useSuggestedMenuItems } from '../hooks/useSuggestedMenuItems';
 
 export default function MenuScreen() {
   const router = useRouter();
   const { table } = useSession();
+  const { theme } = useTheme();
   const { selectedAllergens } = useUserSettings();
   const { items: cartItems, itemCount, total } = useCart();
   const [activeCategory, setActiveCategory] = useState<Category | undefined>(undefined);
   const { items, loading } = useMenuItems(activeCategory);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const colors = getCustomerColors(theme);
+  const suggestedItems = useSuggestedMenuItems(menuItems);
 
   useEffect(() => {
     setMenuItems(items);
   }, [items]);
 
-  const handleAvailabilityUpdate = useCallback((id: string, available: boolean) => {
+  const handleAvailabilityUpdate = useCallback((id: string, available: boolean, availabilityMessage: string | null) => {
     setMenuItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, available } : item))
+      current.map((item) =>
+        item.id === id ? { ...item, available, availability_message: availabilityMessage } : item
+      )
     );
   }, []);
 
@@ -46,33 +53,42 @@ export default function MenuScreen() {
     ({ item }: { item: MenuItem }) => (
       <MenuItemRow
         item={item}
+        colors={colors}
         onOpen={openItem}
         matchingAllergens={getMatchingAllergens(item.allergens, selectedAllergens).map((allergen) => allergen.name)}
       />
     ),
-    [openItem, selectedAllergens]
+    [colors, openItem, selectedAllergens]
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar style={colors.statusBar} />
 
       <View style={styles.header}>
-        <Text style={styles.tableLabel}>Table {table?.number ?? ''}</Text>
+        <Text style={[styles.tableLabel, { color: colors.textMuted }]}>Table {table?.number ?? ''}</Text>
         <View style={styles.headerRow}>
-          <Text style={styles.title}>Menu</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Menu</Text>
           <View style={styles.headerActions}>
             <Pressable
-              style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && styles.pressed,
+              ]}
               onPress={() => router.push('/settings')}
             >
-              <Text style={styles.secondaryButtonText}>Paramètres</Text>
+              <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Paramètres</Text>
             </Pressable>
             <Pressable
-              style={({ pressed }) => [styles.cartButton, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.cartButton,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && styles.pressed,
+              ]}
               onPress={() => router.push('/order-summary')}
             >
-              <Text style={styles.cartIcon}>Panier</Text>
+              <Text style={[styles.cartIcon, { color: colors.text }]}>Panier</Text>
               {itemCount > 0 && (
                 <View style={styles.cartBadge}>
                   <Text style={styles.cartBadgeText}>{itemCount}</Text>
@@ -82,15 +98,36 @@ export default function MenuScreen() {
           </View>
         </View>
         {selectedAllergens.length > 0 ? (
-          <Text style={styles.preferenceHint}>
+          <Text style={[styles.preferenceHint, { color: colors.textSecondary }]}>
             Allergies suivies: {selectedAllergens.map((allergen) => allergen.name).join(', ')}
           </Text>
         ) : (
-          <Text style={styles.preferenceHint}>
+          <Text style={[styles.preferenceHint, { color: colors.textSecondary }]}>
             Ajoutez vos allergies dans Paramètres pour être averti sur les plats concernés.
           </Text>
         )}
       </View>
+
+      {suggestedItems.length > 0 ? (
+        <View style={styles.suggestionBox}>
+          <Text style={[styles.suggestionTitle, { color: colors.text }]}>Suggestions</Text>
+          <View style={styles.suggestionPills}>
+            {suggestedItems.map((item) => (
+              <Pressable
+                key={item.id}
+                style={({ pressed }) => [
+                  styles.suggestionPill,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  pressed && styles.pressed,
+                ]}
+                onPress={() => openItem(item.id)}
+              >
+                <Text style={[styles.suggestionText, { color: colors.text }]}>{item.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.pills}>
         {CUSTOMER_CATEGORY_FILTERS.map((category) => (
@@ -98,6 +135,7 @@ export default function MenuScreen() {
             key={category.label}
             style={({ pressed }) => [
               styles.pill,
+              { backgroundColor: colors.surface, borderColor: colors.border },
               activeCategory === category.value && styles.pillActive,
               pressed && styles.pressed,
             ]}
@@ -106,6 +144,7 @@ export default function MenuScreen() {
             <Text
               style={[
                 styles.pillText,
+                { color: colors.textSecondary },
                 activeCategory === category.value && styles.pillTextActive,
               ]}
             >
@@ -224,6 +263,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
     marginBottom: 12,
+  },
+  suggestionBox: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  suggestionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  suggestionPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  suggestionPill: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  suggestionText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   pill: {
     paddingHorizontal: 14,

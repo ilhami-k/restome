@@ -124,16 +124,17 @@ export default function QRScanScreen() {
 
           <View style={[styles.scannerContainer, { width: scannerSize, height: scannerSize }]}>
             {scanning && permission?.granted ? (
-              <CameraView
-                style={[styles.camera, { width: scannerSize, height: scannerSize }]}
-                facing="back"
-                onBarcodeScanned={handleBarCode}
-                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-              >
+              <>
+                <CameraView
+                  style={[styles.camera, { width: scannerSize, height: scannerSize }]}
+                  facing="back"
+                  onBarcodeScanned={handleBarCode}
+                  barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                />
                 <View style={styles.overlay}>
                   <View style={[styles.scanFrame, { width: frameSize, height: frameSize }]} />
                 </View>
-              </CameraView>
+              </>
             ) : (
               <View style={[styles.placeholder, { width: scannerSize, height: scannerSize }]}>
                 <View style={[styles.scanFrame, { width: frameSize, height: frameSize }]} />
@@ -232,6 +233,7 @@ const styles = StyleSheet.create({
   },
   scannerContainer: {
     marginBottom: 24,
+    position: 'relative',
   },
   camera: {
     borderRadius: 16,
@@ -244,9 +246,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   overlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
+    pointerEvents: 'none',
   },
   scanFrame: {
     borderWidth: 2,

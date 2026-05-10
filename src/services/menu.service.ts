@@ -50,10 +50,14 @@ export async function fetchKitchenMenuItems(): Promise<MenuItem[]> {
   return ((data ?? []) as MenuRow[]).map(mapMenuRow);
 }
 
-export async function updateMenuItemAvailability(menuItemId: string, available: boolean): Promise<void> {
+export async function updateMenuItemAvailability(
+  menuItemId: string,
+  available: boolean,
+  availabilityMessage: string | null
+): Promise<void> {
   const { error } = await supabase
     .from('menu_items')
-    .update({ available })
+    .update({ available, availability_message: available ? null : availabilityMessage })
     .eq('id', menuItemId);
 
   if (error) {
@@ -70,6 +74,7 @@ export async function createMenuItem(input: MenuItemInput): Promise<void> {
       category: input.category,
       image_url: input.image_url,
       available: true,
+      availability_message: null,
     })
     .select('id')
     .single();
@@ -152,7 +157,9 @@ export async function createAllergen(name: string): Promise<Allergen> {
   return data as Allergen;
 }
 
-export function subscribeToMenuAvailability(onUpdate: (menuItemId: string, available: boolean) => void) {
+export function subscribeToMenuAvailability(
+  onUpdate: (menuItemId: string, available: boolean, availabilityMessage: string | null) => void
+) {
   const channel = supabase
     .channel('menu_availability')
     .on(
@@ -163,8 +170,12 @@ export function subscribeToMenuAvailability(onUpdate: (menuItemId: string, avail
         table: 'menu_items',
       },
       (payload) => {
-        const newRecord = payload.new as { id: string; available: boolean };
-        onUpdate(newRecord.id, newRecord.available);
+        const newRecord = payload.new as {
+          id: string;
+          available: boolean;
+          availability_message: string | null;
+        };
+        onUpdate(newRecord.id, newRecord.available, newRecord.availability_message);
       }
     )
     .subscribe();

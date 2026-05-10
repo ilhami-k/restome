@@ -20,13 +20,11 @@ function ConnectionOverlay() {
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    const subscription = NetInfo.addEventListener((state) => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
       setIsOffline(!(state.isConnected && state.isInternetReachable !== false));
     });
 
-    return () => {
-      subscription();
-    };
+    return unsubscribe;
   }, []);
 
   if (!isOffline) {
@@ -46,7 +44,6 @@ function ConnectionOverlay() {
 }
 
 export function AppProviders({ children }: AppProvidersProps) {
-
   return (
     <GestureHandlerRootView style={styles.root}>
       <SQLiteProvider databaseName="restome.db" onInit={initializeDatabase}>

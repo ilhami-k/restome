@@ -1,3 +1,17 @@
+import type { ThemeMode } from '../types';
+
+export interface CustomerColors {
+  background: string;
+  surface: string;
+  text: string;
+  textSecondary: string;
+  textMuted: string;
+  border: string;
+  banner: string;
+  unavailableBackground: string;
+  statusBar: 'light' | 'dark';
+}
+
 export const Colors = {
   // Brand
   primary: '#C4703E',
@@ -39,3 +53,31 @@ export const Colors = {
   black: '#000000',
   overlay: 'rgba(0,0,0,0.4)',
 } as const;
+
+export function getCustomerColors(theme: ThemeMode): CustomerColors {
+  if (theme === 'dark') {
+    return {
+      background: Colors.customerDarkBackground,
+      surface: Colors.customerDarkSurface,
+      text: Colors.customerDarkText,
+      textSecondary: Colors.customerDarkTextSecondary,
+      textMuted: '#6E6E73',
+      border: Colors.kitchenBorder,
+      banner: '#2A211C',
+      unavailableBackground: '#3A1F1F',
+      statusBar: 'light',
+    };
+  }
+
+  return {
+    background: Colors.customerBackground,
+    surface: Colors.customerSurface,
+    text: Colors.customerText,
+    textSecondary: Colors.customerTextSecondary,
+    textMuted: Colors.customerTextMuted,
+    border: Colors.customerBorder,
+    banner: Colors.customerBanner,
+    unavailableBackground: Colors.unavailableBackground,
+    statusBar: 'dark',
+  };
+}

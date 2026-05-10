@@ -3,14 +3,17 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { useUserSettings } from '../../../contexts/UserSettingsContext';
-import { Colors } from '../../../constants/colors';
+import { Colors, getCustomerColors } from '../../../constants/colors';
 import { useAllergenOptions } from '../hooks/useAllergenOptions';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
   const { selectedAllergens, isLoading: isLoadingSettings, toggleAllergen, clearAllergens } = useUserSettings();
   const { allergens, isLoading, error } = useAllergenOptions();
+  const colors = getCustomerColors(theme);
 
   const selectedIds = useMemo(
     () => new Set(selectedAllergens.map((allergen) => allergen.id)),
@@ -18,22 +21,34 @@ export default function SettingsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar style={colors.statusBar} />
 
       <View style={styles.header}>
         <Pressable style={({ pressed }) => [styles.backButton, pressed && styles.pressed]} onPress={() => router.back()}>
           <Text style={styles.backText}>← Retour</Text>
         </Pressable>
-        <Text style={styles.title}>Paramètres</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.text }]}>Paramètres</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Enregistrez vos allergènes sur cet appareil pour repérer plus vite les plats à risque.
         </Text>
       </View>
 
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Mes allergies</Text>
-        <Text style={styles.summaryValue}>
+      <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Apparence</Text>
+        <View style={styles.themeRow}>
+          <Text style={[styles.summaryValue, { color: colors.text }]}>
+            Mode {theme === 'dark' ? 'sombre' : 'clair'}
+          </Text>
+          <Pressable style={({ pressed }) => [styles.themeButton, pressed && styles.pressed]} onPress={toggleTheme}>
+            <Text style={styles.themeButtonText}>Changer</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Mes allergies</Text>
+        <Text style={[styles.summaryValue, { color: colors.text }]}>
           {selectedAllergens.length === 0
             ? 'Aucune allergie enregistrée'
             : `${selectedAllergens.length} allergie${selectedAllergens.length > 1 ? 's' : ''} sélectionnée${selectedAllergens.length > 1 ? 's' : ''}`}
@@ -61,14 +76,15 @@ export default function SettingsScreen() {
                   key={allergen.id}
                   style={({ pressed }) => [
                     styles.row,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
                     isSelected && styles.rowSelected,
                     pressed && styles.pressed,
                   ]}
                   onPress={() => toggleAllergen(allergen)}
                 >
                   <View style={styles.rowContent}>
-                    <Text style={styles.rowTitle}>{allergen.name}</Text>
-                    <Text style={styles.rowText}>
+                    <Text style={[styles.rowTitle, { color: colors.text }]}>{allergen.name}</Text>
+                    <Text style={[styles.rowText, { color: colors.textSecondary }]}>
                       {isSelected ? 'Pris en compte dans le menu' : 'Non sélectionné'}
                     </Text>
                   </View>
@@ -129,7 +145,23 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.customerText,
+  },
+  themeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  themeButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  themeButtonText: {
+    color: Colors.white,
+    fontSize: 13,
+    fontWeight: '700',
   },
   clearText: {
     marginTop: 10,

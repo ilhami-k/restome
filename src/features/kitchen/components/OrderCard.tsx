@@ -1,5 +1,5 @@
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors } from '../../../constants/colors';
 import { StatusBadge } from './StatusBadge';
 import type { GroupedKitchenOrder } from '../hooks/useKitchenOrders';
@@ -9,9 +9,22 @@ interface OrderCardProps {
   group: GroupedKitchenOrder;
   onUpdateStatus: (itemId: string, status: ItemStatus) => void;
   onMarkUnavailable: (itemId: string) => void;
+  onSendMessage: (itemId: string, message: string) => void;
 }
 
-export function OrderCard({ group, onUpdateStatus, onMarkUnavailable }: OrderCardProps) {
+export function OrderCard({ group, onUpdateStatus, onMarkUnavailable, onSendMessage }: OrderCardProps) {
+  const [messages, setMessages] = useState<Record<string, string>>({});
+
+  function sendMessage(itemId: string) {
+    const message = messages[itemId]?.trim();
+    if (!message) {
+      return;
+    }
+
+    onSendMessage(itemId, message);
+    setMessages((current) => ({ ...current, [itemId]: '' }));
+  }
+
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -39,7 +52,7 @@ export function OrderCard({ group, onUpdateStatus, onMarkUnavailable }: OrderCar
             <StatusBadge status={item.status} />
           </View>
 
-          {(item.status === 'pending' || item.status === 'preparing') && (
+          {(item.status === 'pending' || item.status === 'preparing') ? (
             <View style={styles.actions}>
               {item.status === 'pending' ? (
                 <Pressable
@@ -77,7 +90,25 @@ export function OrderCard({ group, onUpdateStatus, onMarkUnavailable }: OrderCar
                 <Text style={[styles.actionText, { color: Colors.statusUnavailable }]}>Indispo.</Text>
               </Pressable>
             </View>
-          )}
+          ) : null}
+
+          <View style={styles.messageRow}>
+            <TextInput
+              style={styles.messageInput}
+              placeholder="Message pour le client"
+              placeholderTextColor={Colors.kitchenTextSecondary}
+              value={messages[item.id] ?? ''}
+              onChangeText={(message) =>
+                setMessages((current) => ({ ...current, [item.id]: message }))
+              }
+            />
+            <Pressable
+              style={({ pressed }) => [styles.messageButton, pressed && styles.pressed]}
+              onPress={() => sendMessage(item.id)}
+            >
+              <Text style={styles.messageButtonText}>Envoyer</Text>
+            </Pressable>
+          </View>
         </View>
       ))}
     </View>
@@ -153,6 +184,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  messageRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  messageInput: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.kitchenBorder,
+    color: Colors.white,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 12,
+  },
+  messageButton: {
+    backgroundColor: Colors.kitchenBackground,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.kitchenBorder,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+  },
+  messageButtonText: {
+    color: Colors.white,
     fontSize: 12,
     fontWeight: '700',
   },

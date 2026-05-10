@@ -16,7 +16,7 @@ export default function KitchenDashboardScreen() {
   const router = useRouter();
   const { logout } = useAuth();
   const [filter, setFilter] = useState<ItemStatus | 'all'>('all');
-  const { stats, groupedOrders, setItemStatus } = useKitchenOrders(filter);
+  const { stats, groupedOrders, setItemStatus, sendItemMessage } = useKitchenOrders(filter);
   const { sessions, closeOpenSession } = useKitchenSessions();
 
   function markUnavailable(itemId: string) {
@@ -72,7 +72,9 @@ export default function KitchenDashboardScreen() {
             <Pressable
               style={({ pressed }) => pressed && styles.pressed}
               onPress={() => {
-                void logout();
+                void logout().then(() => {
+                  router.replace('/');
+                });
               }}
             >
               <Text style={styles.logout}>Déconnexion</Text>
@@ -153,6 +155,9 @@ export default function KitchenDashboardScreen() {
               void setItemStatus(itemId, status);
             }}
             onMarkUnavailable={markUnavailable}
+            onSendMessage={(itemId, message) => {
+              void sendItemMessage(itemId, message);
+            }}
           />
         ))}
 

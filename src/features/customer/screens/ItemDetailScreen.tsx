@@ -13,8 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCart } from '../../../contexts/CartContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { useUserSettings } from '../../../contexts/UserSettingsContext';
-import { Colors } from '../../../constants/colors';
+import { Colors, getCustomerColors } from '../../../constants/colors';
 import { formatPrice, getMatchingAllergens } from '../../../constants/ui';
 import { useMenuItems } from '../hooks/useMenuItems';
 
@@ -23,10 +24,12 @@ export default function ItemDetailScreen() {
   const { itemId: itemIdParam } = useLocalSearchParams<{ itemId?: string | string[] }>();
   const { width } = useWindowDimensions();
   const { addItem } = useCart();
+  const { theme } = useTheme();
   const { items } = useMenuItems();
   const { selectedAllergens } = useUserSettings();
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
+  const colors = getCustomerColors(theme);
 
   const itemId = Array.isArray(itemIdParam) ? itemIdParam[0] : itemIdParam;
   const item = items.find((menuItem) => menuItem.id === itemId);
@@ -34,12 +37,12 @@ export default function ItemDetailScreen() {
 
   if (!item) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <Pressable style={({ pressed }) => [styles.backButton, pressed && styles.pressed]} onPress={() => router.back()}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
         <View style={styles.missingState}>
-          <Text style={styles.title}>Plat introuvable</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Plat introuvable</Text>
         </View>
       </SafeAreaView>
     );
@@ -49,8 +52,8 @@ export default function ItemDetailScreen() {
   const matchingAllergens = getMatchingAllergens(item.allergens, selectedAllergens);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar style={colors.statusBar} />
 
       <Pressable style={({ pressed }) => [styles.backButton, pressed && styles.pressed]} onPress={() => router.back()}>
         <Text style={styles.backArrow}>←</Text>
@@ -61,24 +64,24 @@ export default function ItemDetailScreen() {
           {item.image_url ? (
             <Image source={{ uri: item.image_url }} style={[styles.image, { height: imageHeight }]} />
           ) : (
-            <View style={[styles.imagePlaceholder, { height: imageHeight }]} />
+            <View style={[styles.imagePlaceholder, { height: imageHeight, backgroundColor: colors.surface }]} />
           )}
         </View>
 
         <View style={styles.content}>
           <View style={styles.nameRow}>
-            <Text style={styles.name}>{item.name}</Text>
+            <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
             <Text style={styles.price}>{formatPrice(item.price)}</Text>
           </View>
 
-          <Text style={styles.description}>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
             {item.allergens && item.allergens.length > 0
               ? item.allergens.map((allergen) => allergen.name).join(', ')
               : 'Aucun allergène renseigné'}
           </Text>
 
           {matchingAllergens.length > 0 ? (
-            <View style={styles.warningCard}>
+            <View style={[styles.warningCard, { backgroundColor: colors.unavailableBackground }]}>
               <Text style={styles.warningTitle}>Attention allergènes</Text>
               <Text style={styles.warningText}>
                 Ce plat contient: {matchingAllergens.map((allergen) => allergen.name).join(', ')}.
@@ -86,28 +89,39 @@ export default function ItemDetailScreen() {
             </View>
           ) : null}
 
-          <Text style={styles.label}>QUANTITE</Text>
+          <Text style={[styles.label, { color: colors.textMuted }]}>QUANTITE</Text>
           <View style={styles.stepper}>
             <Pressable
-              style={({ pressed }) => [styles.stepperButton, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.stepperButton,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && styles.pressed,
+              ]}
               onPress={() => setQuantity((current) => Math.max(1, current - 1))}
             >
-              <Text style={styles.stepperText}>-</Text>
+              <Text style={[styles.stepperText, { color: colors.text }]}>-</Text>
             </Pressable>
-            <Text style={styles.stepperValue}>{quantity}</Text>
+            <Text style={[styles.stepperValue, { color: colors.text }]}>{quantity}</Text>
             <Pressable
-              style={({ pressed }) => [styles.stepperButton, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.stepperButton,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && styles.pressed,
+              ]}
               onPress={() => setQuantity((current) => current + 1)}
             >
-              <Text style={styles.stepperText}>+</Text>
+              <Text style={[styles.stepperText, { color: colors.text }]}>+</Text>
             </Pressable>
           </View>
 
-          <Text style={styles.label}>INSTRUCTIONS</Text>
+          <Text style={[styles.label, { color: colors.textMuted }]}>INSTRUCTIONS</Text>
           <TextInput
-            style={styles.notesInput}
+            style={[
+              styles.notesInput,
+              { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
+            ]}
             placeholder="Ex. sans oignons, attention à une cuisson particulière..."
-            placeholderTextColor={Colors.customerTextMuted}
+            placeholderTextColor={colors.textMuted}
             value={notes}
             onChangeText={setNotes}
             multiline

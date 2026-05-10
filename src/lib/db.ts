@@ -80,6 +80,18 @@ export async function getOrderHistory(
   );
 }
 
+export async function getSuggestedMenuItemIds(db: SQLiteDatabase): Promise<string[]> {
+  const rows = await db.getAllAsync<{ menu_item_id: string; times_ordered: number; last_ordered_at: string }>(
+    `SELECT menu_item_id, COUNT(*) AS times_ordered, MAX(ordered_at) AS last_ordered_at
+     FROM order_history
+     GROUP BY menu_item_id
+     ORDER BY times_ordered DESC, last_ordered_at DESC
+     LIMIT 5`
+  );
+
+  return rows.map((row) => row.menu_item_id);
+}
+
 function generateUuid(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;

@@ -45,11 +45,15 @@ export function useKitchenMenuItems(search: string) {
     }, {});
   }, [filteredItems]);
 
-  async function toggleItemAvailability(item: MenuItem) {
-    await updateMenuItemAvailability(item.id, !item.available);
+  async function toggleItemAvailability(item: MenuItem, message: string | null) {
+    const nextAvailable = !item.available;
+
+    await updateMenuItemAvailability(item.id, nextAvailable, message);
     setItems((current) =>
       current.map((entry) =>
-        entry.id === item.id ? { ...entry, available: !entry.available } : entry
+        entry.id === item.id
+          ? { ...entry, available: nextAvailable, availability_message: nextAvailable ? null : message }
+          : entry
       )
     );
   }

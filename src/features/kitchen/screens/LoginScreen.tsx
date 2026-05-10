@@ -3,46 +3,41 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
-import { Controller, useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Colors } from '../../../constants/colors';
-
-const loginSchema = z.object({
-  email: z.string().email("Saisissez une adresse e-mail valide."),
-  password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères.'),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormValues>({
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-    resolver: zodResolver(loginSchema),
-  });
 
-  const onSubmit = handleSubmit(async ({ email, password }) => {
+  async function onSubmit() {
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+    const nextEmailError = trimmedEmail.includes('@') ? '' : "Saisissez une adresse e-mail valide.";
+    const nextPasswordError = trimmedPassword.length >= 6 ? '' : 'Le mot de passe doit contenir au moins 6 caractères.';
+
+    setEmailError(nextEmailError);
+    setPasswordError(nextPasswordError);
+
+    if (nextEmailError || nextPasswordError) {
+      return;
+    }
+
     setLoading(true);
     try {
-      await login(email.trim(), password.trim());
+      await login(trimmedEmail, trimmedPassword);
       router.replace('/dashboard');
     } catch {
       Alert.alert('Connexion impossible', 'Identifiants invalides.');
     } finally {
       setLoading(false);
     }
-  });
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -55,42 +50,28 @@ export default function LoginScreen() {
 
       <View style={styles.form}>
         <Text style={styles.label}>E-mail</Text>
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              placeholder="staff@restome.com"
-              placeholderTextColor={Colors.kitchenTextSecondary}
-              value={value}
-              onBlur={onBlur}
-              onChangeText={onChange}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoCorrect={false}
-            />
-          )}
+        <TextInput
+          style={[styles.input, emailError && styles.inputError]}
+          placeholder="staff@restome.com"
+          placeholderTextColor={Colors.kitchenTextSecondary}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          autoCorrect={false}
         />
-        {errors.email ? <Text style={styles.errorText}>{errors.email.message}</Text> : null}
+        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
         <Text style={styles.label}>Mot de passe</Text>
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              style={[styles.input, errors.password && styles.inputError]}
-              placeholder="••••••••"
-              placeholderTextColor={Colors.kitchenTextSecondary}
-              value={value}
-              onBlur={onBlur}
-              onChangeText={onChange}
-              secureTextEntry
-            />
-          )}
+        <TextInput
+          style={[styles.input, passwordError && styles.inputError]}
+          placeholder="••••••••"
+          placeholderTextColor={Colors.kitchenTextSecondary}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
         />
-        {errors.password ? <Text style={styles.errorText}>{errors.password.message}</Text> : null}
+        {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
         <Pressable
           style={({ pressed }) => [styles.button, pressed && styles.pressed, loading && styles.disabled]}
@@ -100,6 +81,13 @@ export default function LoginScreen() {
           disabled={loading}
         >
           {loading ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.buttonText}>Se connecter</Text>}
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [styles.scanButton, pressed && styles.pressed]}
+          onPress={() => router.replace('/')}
+        >
+          <Text style={styles.scanButtonText}>Retour au scan QR</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -169,6 +157,15 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: '700',
+  },
+  scanButton: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  scanButtonText: {
+    color: Colors.kitchenTextSecondary,
+    fontSize: 13,
+    fontWeight: '600',
   },
   pressed: {
     opacity: 0.8,

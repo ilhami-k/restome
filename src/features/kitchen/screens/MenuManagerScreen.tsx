@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../../constants/colors';
+import { KitchenMessages } from '../../../constants/messages';
 import { CATEGORY_LABELS, formatPrice } from '../../../constants/ui';
 import { useKitchenMenuItems } from '../hooks/useKitchenMenuItems';
 import { CATEGORIES, type Category, type MenuItem } from '../../../types';
@@ -31,6 +32,7 @@ export default function MenuManagerScreen() {
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<MenuFormState>(emptyForm);
   const [customAllergenName, setCustomAllergenName] = useState('');
+  const [availabilityMessage, setAvailabilityMessage] = useState<string>(KitchenMessages.itemUnavailable);
   const [saving, setSaving] = useState(false);
   const {
     allergens,
@@ -44,7 +46,8 @@ export default function MenuManagerScreen() {
 
   async function handleToggleItem(item: (typeof filteredItems)[number]) {
     try {
-      await toggleItemAvailability(item);
+      const message = item.available ? availabilityMessage.trim() || KitchenMessages.itemUnavailable : null;
+      await toggleItemAvailability(item, message);
     } catch {
       Alert.alert('Erreur', "Impossible de mettre à jour la disponibilité.");
     }
@@ -136,6 +139,13 @@ export default function MenuManagerScreen() {
           placeholderTextColor={Colors.kitchenTextSecondary}
           value={search}
           onChangeText={setSearch}
+        />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Message client quand un article est désactivé"
+          placeholderTextColor={Colors.kitchenTextSecondary}
+          value={availabilityMessage}
+          onChangeText={setAvailabilityMessage}
         />
       </View>
 
@@ -257,6 +267,9 @@ export default function MenuManagerScreen() {
                     <Text style={styles.itemMeta}>
                       {item.available ? 'Visible dans le menu' : 'Masqué côté client'}
                     </Text>
+                    {!item.available && item.availability_message ? (
+                      <Text style={styles.itemMessage}>{item.availability_message}</Text>
+                    ) : null}
                   </View>
                   <View style={styles.rowActions}>
                     <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
@@ -305,6 +318,7 @@ const styles = StyleSheet.create({
   },
   searchBox: {
     marginBottom: 12,
+    gap: 8,
   },
   searchInput: {
     backgroundColor: Colors.kitchenCard,
@@ -454,6 +468,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.kitchenTextSecondary,
     marginTop: 2,
+  },
+  itemMessage: {
+    fontSize: 11,
+    color: Colors.primaryLight,
+    marginTop: 3,
   },
   itemPrice: {
     fontSize: 14,

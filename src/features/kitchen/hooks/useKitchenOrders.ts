@@ -81,5 +81,9 @@ export function useKitchenOrders(filter: ItemStatus | 'all') {
     setItems(nextItems);
   }
 
-  return { stats, groupedOrders, setItemStatus };
+  async function sendItemMessage(itemId: string, message: string) {
+    await createStatusUpdate(itemId, message);
+  }
+
+  return { stats, groupedOrders, setItemStatus, sendItemMessage };
 }

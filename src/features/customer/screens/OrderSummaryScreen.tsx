@@ -14,7 +14,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useCart } from '../../../contexts/CartContext';
 import { useSession } from '../../../contexts/SessionContext';
-import { Colors } from '../../../constants/colors';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { Colors, getCustomerColors } from '../../../constants/colors';
 import { formatPrice } from '../../../constants/ui';
 import { useSubmitOrder } from '../hooks/useSubmitOrder';
 
@@ -22,7 +23,9 @@ export default function OrderSummaryScreen() {
   const router = useRouter();
   const { items, removeItem, clearCart, total, itemCount } = useCart();
   const { session, table } = useSession();
+  const { theme } = useTheme();
   const { submitOrder, submitting } = useSubmitOrder();
+  const colors = getCustomerColors(theme);
 
   async function placeOrder() {
     if (!session) {
@@ -44,35 +47,35 @@ export default function OrderSummaryScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar style={colors.statusBar} />
 
       <Pressable style={({ pressed }) => [styles.backButton, pressed && styles.pressed]} onPress={() => router.back()}>
         <Text style={styles.backText}>← Retour au menu</Text>
       </Pressable>
 
-      <Text style={styles.title}>Votre commande</Text>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.title, { color: colors.text }]}>Votre commande</Text>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
         Table {table?.number ?? ''} · {itemCount} article{itemCount > 1 ? 's' : ''}
       </Text>
 
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         {items.map((item) => (
           <View key={item.cart_item_id} style={styles.row}>
-            <View style={styles.thumb}>
+            <View style={[styles.thumb, { backgroundColor: colors.surface }]}>
               {item.menu_item.image_url ? (
                 <Image source={{ uri: item.menu_item.image_url }} style={styles.thumbImage} />
               ) : null}
             </View>
             <View style={styles.rowContent}>
-              <Text style={styles.itemName}>{item.menu_item.name}</Text>
-              {item.notes ? <Text style={styles.itemNotes}>“{item.notes}”</Text> : null}
-              <Text style={styles.itemMeta}>
+              <Text style={[styles.itemName, { color: colors.text }]}>{item.menu_item.name}</Text>
+              {item.notes ? <Text style={[styles.itemNotes, { color: colors.textSecondary }]}>“{item.notes}”</Text> : null}
+              <Text style={[styles.itemMeta, { color: colors.textMuted }]}>
                 Quantité: {item.quantity} · {formatPrice(item.menu_item.price)} l'unité
               </Text>
             </View>
             <View style={styles.rowRight}>
-              <Text style={styles.itemPrice}>{formatPrice(item.menu_item.price * item.quantity)}</Text>
+              <Text style={[styles.itemPrice, { color: colors.text }]}>{formatPrice(item.menu_item.price * item.quantity)}</Text>
               <Pressable
                 style={({ pressed }) => pressed && styles.pressed}
                 onPress={() => removeItem(item.cart_item_id)}
@@ -83,18 +86,18 @@ export default function OrderSummaryScreen() {
           </View>
         ))}
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Sous-total</Text>
-          <Text style={styles.totalValue}>{formatPrice(total)}</Text>
+          <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>Sous-total</Text>
+          <Text style={[styles.totalValue, { color: colors.text }]}>{formatPrice(total)}</Text>
         </View>
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabelBold}>Total</Text>
-          <Text style={styles.totalValueBold}>{formatPrice(total)}</Text>
+          <Text style={[styles.totalLabelBold, { color: colors.text }]}>Total</Text>
+          <Text style={[styles.totalValueBold, { color: colors.text }]}>{formatPrice(total)}</Text>
         </View>
 
-        <View style={styles.banner}>
+        <View style={[styles.banner, { backgroundColor: colors.banner }]}>
           <Text style={styles.bannerText}>
             Une fois envoyée, la commande ne peut plus être modifiée. La cuisine commencera la préparation immédiatement.
           </Text>

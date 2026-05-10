@@ -58,6 +58,7 @@ Items on the menu.
 | price | decimal(10,2) | not null, >= 0 |
 | category | text | not null, check(category in ('starter','main','dessert','drink')) |
 | available | boolean | not null, default true |
+| availability_message | text | nullable |
 | image_url | text | nullable |
 | created_at | timestamptz | default now() |
 
@@ -165,6 +166,12 @@ Enable Supabase Realtime on these tables:
 1. `order_items` — kitchen subscribes to `INSERT` and `UPDATE` (new orders appear instantly)
 2. `status_updates` — customer subscribes to `INSERT` (kitchen messages appear instantly)
 3. `menu_items` — customer subscribes to `UPDATE` on `available` field (availability changes pushed in real time)
+
+If you already created the database before `availability_message` was added, run:
+
+```sql
+alter table menu_items add column if not exists availability_message text;
+```
 
 Enable the tables in the Supabase Dashboard → Database → Replication.
 

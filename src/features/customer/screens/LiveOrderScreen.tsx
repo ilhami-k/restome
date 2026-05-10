@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useSession } from '../../../contexts/SessionContext';
-import { Colors } from '../../../constants/colors';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { Colors, getCustomerColors } from '../../../constants/colors';
 import { ITEM_STATUS_LABELS } from '../../../constants/ui';
 import { useLiveOrder } from '../hooks/useLiveOrder';
 import type { ItemStatus } from '../../../types';
@@ -19,8 +20,10 @@ const STATUS_COLORS: Record<ItemStatus, string> = {
 export default function LiveOrderScreen() {
   const router = useRouter();
   const { session, table } = useSession();
+  const { theme } = useTheme();
   const { items, messagesByItemId } = useLiveOrder(session?.id);
   const [animated, setAnimated] = useState(true);
+  const colors = getCustomerColors(theme);
 
   useEffect(() => {
     const timeout = setTimeout(() => setAnimated(false), 3000);
@@ -28,10 +31,10 @@ export default function LiveOrderScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar style={colors.statusBar} />
 
-      <View style={styles.banner}>
+      <View style={[styles.banner, { backgroundColor: colors.banner }]}>
         <Text style={styles.bannerTitle}>Commande confirmée</Text>
         <Text style={styles.bannerSubtitle}>La cuisine prépare votre commande</Text>
         {animated ? (
@@ -43,16 +46,18 @@ export default function LiveOrderScreen() {
         ) : null}
       </View>
 
-      <Text style={styles.sectionLabel}>TABLE {table?.number ?? ''} · SUIVI EN DIRECT</Text>
+      <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
+        TABLE {table?.number ?? ''} · SUIVI EN DIRECT
+      </Text>
 
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         {items.map((item) => (
-          <View key={item.id} style={styles.card}>
+          <View key={item.id} style={[styles.card, { backgroundColor: colors.surface }]}>
             <View style={styles.cardLeft}>
               <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[item.status] }]} />
               <View>
-                <Text style={styles.itemName}>{item.menu_item?.name ?? 'Article'}</Text>
-                {item.notes ? <Text style={styles.itemNotes}>“{item.notes}”</Text> : null}
+                <Text style={[styles.itemName, { color: colors.text }]}>{item.menu_item?.name ?? 'Article'}</Text>
+                {item.notes ? <Text style={[styles.itemNotes, { color: colors.textSecondary }]}>“{item.notes}”</Text> : null}
                 {messagesByItemId[item.id] ? (
                   <Text style={styles.itemMessage}>{messagesByItemId[item.id]}</Text>
                 ) : null}
@@ -66,11 +71,18 @@ export default function LiveOrderScreen() {
           </View>
         ))}
 
-        {items.length === 0 ? <Text style={styles.empty}>Aucun article en cours</Text> : null}
+        {items.length === 0 ? <Text style={[styles.empty, { color: colors.textSecondary }]}>Aucun article en cours</Text> : null}
       </ScrollView>
 
-      <Pressable style={({ pressed }) => [styles.addMoreButton, pressed && styles.pressed]} onPress={() => router.push('/menu')}>
-        <Text style={styles.addMoreText}>+ Ajouter des articles</Text>
+      <Pressable
+        style={({ pressed }) => [
+          styles.addMoreButton,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+          pressed && styles.pressed,
+        ]}
+        onPress={() => router.push('/menu')}
+      >
+        <Text style={[styles.addMoreText, { color: colors.text }]}>+ Ajouter des articles</Text>
       </Pressable>
     </SafeAreaView>
   );
