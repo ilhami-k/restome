@@ -69,7 +69,7 @@ Single React Native (Expo) app with two modes in one codebase:
 
 - **Customer mode** — anonymous, entry via QR code scan. Requires an active connection.
 - **Kitchen mode** — authenticated, entry via a staff QR code that redirects to the login screen. No visible button or link from the customer side.
-**Source of truth: Supabase (PostgreSQL).** SQLite lives only on the customer's device for local personalization (device identity, order history, UI preferences). The kitchen does not use SQLite.
+**Source of truth: Supabase (PostgreSQL).** SQLite lives only on the customer's device for local personalization (device identity, order history, theme preference, saved allergen preferences). The kitchen does not use SQLite.
 
 ## Features
 
@@ -95,39 +95,42 @@ Single React Native (Expo) app with two modes in one codebase:
 
 | Table | Field | Type | Role |
 |---|---|---|---|
-| tables | id | uuid PK | Table identifier |
-| | number | int | Display number (e.g. "Table 4") |
-| | qr_code | text | Value encoded in the physical QR code |
-| sessions | id | uuid PK | Session identifier |
-| | table_id | uuid FK | → tables |
-| | status | text | open / closed |
-| | created_at | timestamp | Session start |
-| | closed_at | timestamp | Session end (nullable) |
-| menu_items | id | uuid PK | Item identifier |
-| | name | text | Display name |
-| | price | decimal | Unit price |
-| | category | text | starter / main / dessert / drink |
-| | available | boolean | Kitchen toggle, pushed in real time |
-| | image_url | text | Image URL |
-| | created_at | timestamp | Creation date |
-| allergens | id | uuid PK | Allergen identifier |
-| | name | text | Allergen name (e.g. "Gluten") |
-| menu_item_allergens | menu_item_id | uuid FK | → menu_items |
-| | allergen_id | uuid FK | → allergens |
-| orders | id | uuid PK | Order identifier |
-| | session_id | uuid FK | → sessions |
-| | status | text | open / closed / paid |
-| | created_at | timestamp | Order opened at |
-| order_items | id | uuid PK | Line identifier |
-| | order_id | uuid FK | → orders |
-| | menu_item_id | uuid FK | → menu_items |
-| | notes | text | Per-item customer notes |
-| | status | text | pending / preparing / ready / unavailable |
-| | created_at | timestamp | Timestamp |
-| status_updates | id | uuid PK | Update identifier |
-| | order_item_id | uuid FK | → order_items |
-| | message | text | Kitchen → customer message |
-| | created_at | timestamp | Timestamp |
+| tables | id | uuid PK, default gen_random_uuid() | Table identifier |
+| | number | int, not null, unique | Display number (e.g. "Table 4") |
+| | qr_code | text, not null, unique | Value encoded in the physical QR code |
+| sessions | id | uuid PK, default gen_random_uuid() | Session identifier |
+| | table_id | uuid FK, not null | References `tables.id` |
+| | status | text, not null | open / closed |
+| | created_at | timestamptz, default now() | Session start |
+| | closed_at | timestamptz, nullable | Session end |
+| menu_items | id | uuid PK, default gen_random_uuid() | Item identifier |
+| | name | text, not null | Display name |
+| | price | decimal(10,2), not null | Unit price, must be >= 0 |
+| | category | text, not null | starter / main / dessert / drink |
+| | available | boolean, not null, default true | Kitchen toggle, pushed in real time |
+| | availability_message | text, nullable | Reason shown when an item is unavailable |
+| | image_url | text, nullable | Image URL |
+| | created_at | timestamptz, default now() | Creation date |
+| allergens | id | uuid PK, default gen_random_uuid() | Allergen identifier |
+| | name | text, not null, unique | Allergen name (e.g. "Gluten") |
+| menu_item_allergens | menu_item_id | uuid FK, not null | References `menu_items.id`, on delete cascade |
+| | allergen_id | uuid FK, not null | References `allergens.id`, on delete cascade |
+| orders | id | uuid PK, default gen_random_uuid() | Order identifier |
+| | session_id | uuid FK, not null, unique | References `sessions.id`; one order per session |
+| | status | text, not null | open / closed / paid |
+| | created_at | timestamptz, default now() | Order opened at |
+| order_items | id | uuid PK, default gen_random_uuid() | Line identifier |
+| | order_id | uuid FK, not null | References `orders.id` |
+| | menu_item_id | uuid FK, not null | References `menu_items.id` |
+| | notes | text, nullable | Per-item customer notes |
+| | status | text, not null | pending / preparing / ready / unavailable |
+| | created_at | timestamptz, default now() | Timestamp |
+| status_updates | id | uuid PK, default gen_random_uuid() | Update identifier |
+| | order_item_id | uuid FK, not null | References `order_items.id` |
+| | message | text, nullable | Kitchen-to-customer message |
+| | created_at | timestamptz, default now() | Timestamp |
+
+`menu_item_allergens` uses a composite primary key: `(menu_item_id, allergen_id)`.
 
 ## SQLite Schema (customer device only)
 
@@ -136,12 +139,14 @@ Local personalization only — no menu cache, no offline queue.
 | Table | Field | Type | Role |
 |---|---|---|---|
 | device | id | text PK | UUID generated on first launch, never sent to server |
-| preferences | id | integer PK | Single row |
-| | theme | text | light / dark |
-| order_history | id | integer PK | Auto-increment |
-| | menu_item_id | text | Supabase item id |
-| | menu_item_name | text | Snapshot of name at order time |
-| | ordered_at | text | Timestamp |
+| preferences | id | integer PK, check(id = 1) | Single row |
+| | theme | text, check(theme in ('light', 'dark')) | light / dark |
+| order_history | id | integer PK autoincrement | Auto-increment |
+| | menu_item_id | text, not null | Supabase item id |
+| | menu_item_name | text, not null | Snapshot of name at order time |
+| | ordered_at | text, not null | Timestamp |
+| user_allergens | allergen_id | text PK | Supabase allergen id |
+| | allergen_name | text, not null | Snapshot of allergen name |
 
 ## Realtime
 
@@ -157,7 +162,7 @@ Menu availability changes (`menu_items.available`) are also pushed to customers 
 - Orders are immutable once submitted — no edits, no cancellations.
 - No customer accounts — session identity is the table QR code, stored in React Context.
 - Multiple customers at the same table share one active order (append-only, no conflicts).
-- Customer personalization (history, theme) is device-local only — identified by a locally generated UUID, never sent to Supabase.
+- Customer personalization (history, theme, saved allergens) is device-local only — identified by a locally generated UUID, never sent to Supabase.
 - Kitchen auth is hidden — staff access via staff QR code only.
 - The 14 standard EU allergens are pre-seeded in the `allergens` table. Kitchen staff can add custom ones.
 
