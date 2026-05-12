@@ -49,7 +49,7 @@ export default function QRScanScreen() {
       }
 
       if (trimmedCode === KITCHEN_QR_CODE) {
-        router.replace('/login');
+        router.replace('/(kitchen)/login');
         return;
       }
 

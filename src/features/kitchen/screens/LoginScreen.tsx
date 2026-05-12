@@ -28,10 +28,10 @@ export default function LoginScreen() {
       return;
     }
 
-    setLoading(true);
+      setLoading(true);
     try {
       await login(trimmedEmail, trimmedPassword);
-      router.replace('/dashboard');
+      router.replace('/(kitchen)/dashboard');
     } catch {
       Alert.alert('Connexion impossible', 'Identifiants invalides.');
     } finally {

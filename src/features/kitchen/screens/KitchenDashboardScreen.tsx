@@ -65,7 +65,7 @@ export default function KitchenDashboardScreen() {
             </View>
             <Pressable
               style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
-              onPress={() => router.push('/menu-manager')}
+              onPress={() => router.push('/(kitchen)/menu-manager')}
             >
               <Text style={styles.menuButtonText}>Menu</Text>
             </Pressable>

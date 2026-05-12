@@ -73,7 +73,7 @@ export async function fetchLiveOrderItems(orderId: string): Promise<OrderItem[]>
 
 export function subscribeToOrderItems(orderId: string, onChange: () => void) {
   const channel = supabase
-    .channel(`order_items:${orderId}`)
+    .channel(createChannelName(`order_items:${orderId}`))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'order_items', filter: `order_id=eq.${orderId}` },
@@ -153,7 +153,7 @@ export async function fetchStatusUpdates(orderItemIds: string[]): Promise<Status
 
 export function subscribeToKitchenOrderItems(onChange: () => void) {
   const channel = supabase
-    .channel('kitchen_order_items')
+    .channel(createChannelName('kitchen_order_items'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
       onChange();
     })
@@ -173,7 +173,7 @@ export function subscribeToStatusUpdates(
   }
 
   const channel = supabase
-    .channel(`status_updates:${orderItemIds.join(':')}`)
+    .channel(createChannelName(`status_updates:${orderItemIds.join(':')}`))
     .on(
       'postgres_changes',
       {
@@ -195,4 +195,8 @@ export function subscribeToStatusUpdates(
 
 function isUniqueViolation(error: { code?: string }): boolean {
   return error.code === '23505';
+}
+
+function createChannelName(name: string): string {
+  return `${name}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
 }

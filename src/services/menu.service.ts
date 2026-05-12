@@ -161,7 +161,7 @@ export function subscribeToMenuAvailability(
   onUpdate: (menuItemId: string, available: boolean, availabilityMessage: string | null) => void
 ) {
   const channel = supabase
-    .channel('menu_availability')
+    .channel(createChannelName('menu_availability'))
     .on(
       'postgres_changes',
       {
@@ -183,4 +183,8 @@ export function subscribeToMenuAvailability(
   return () => {
     void supabase.removeChannel(channel);
   };
+}
+
+function createChannelName(name: string): string {
+  return `${name}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
 }

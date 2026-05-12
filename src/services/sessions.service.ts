@@ -57,7 +57,7 @@ export async function closeSession(sessionId: string): Promise<void> {
 
 export function subscribeToSessions(onChange: () => void) {
   const channel = supabase
-    .channel('kitchen_sessions')
+    .channel(createChannelName('kitchen_sessions'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => {
       onChange();
     })
@@ -66,4 +66,8 @@ export function subscribeToSessions(onChange: () => void) {
   return () => {
     void supabase.removeChannel(channel);
   };
+}
+
+function createChannelName(name: string): string {
+  return `${name}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
 }

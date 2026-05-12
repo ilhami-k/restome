@@ -12,11 +12,11 @@ export default function KitchenLayout() {
   }
 
   if (!isAuthenticated && !isLoginRoute) {
-    return <Redirect href="/login" />;
+    return <Redirect href="/(kitchen)/login" />;
   }
 
   if (isAuthenticated && isLoginRoute) {
-    return <Redirect href="/dashboard" />;
+    return <Redirect href="/(kitchen)/dashboard" />;
   }
 
   return <Stack screenOptions={{ headerShown: false }} />;
