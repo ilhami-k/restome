@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   closeSession,
   fetchOpenSessions,
@@ -8,6 +8,10 @@ import type { Session } from '../../../types';
 
 export function useKitchenSessions() {
   const [sessions, setSessions] = useState<Session[]>([]);
+
+  const refreshSessions = useCallback(async () => {
+    setSessions(await fetchOpenSessions());
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -32,8 +36,8 @@ export function useKitchenSessions() {
 
   async function closeOpenSession(sessionId: string) {
     await closeSession(sessionId);
-    setSessions(await fetchOpenSessions());
+    await refreshSessions();
   }
 
-  return { sessions, closeOpenSession };
+  return { sessions, closeOpenSession, refreshSessions };
 }

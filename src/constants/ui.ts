@@ -1,4 +1,4 @@
-import type { Allergen, Category, ItemStatus } from '../types';
+import type { Allergen, Category, ItemStatus, MenuItem } from '../types';
 import { CATEGORIES, ACTIVE_ITEM_STATUSES } from '../types';
 
 export const CATEGORY_LABELS: Record<Category, string> = {
@@ -20,6 +20,13 @@ export const CUSTOMER_CATEGORY_FILTERS: { label: string; value: Category | undef
   ...CATEGORIES.map((cat) => ({ label: CATEGORY_LABELS[cat], value: cat as Category })),
 ];
 
+export type CustomerMenuFilter = Category | 'allergens' | undefined;
+
+export const CUSTOMER_MENU_FILTERS: { label: string; value: CustomerMenuFilter }[] = [
+  ...CUSTOMER_CATEGORY_FILTERS,
+  { label: 'Contient vos allergènes', value: 'allergens' },
+];
+
 export const KITCHEN_STATUS_FILTERS: { label: string; value: ItemStatus | 'all' }[] = [
   { label: 'Tout', value: 'all' },
   ...ACTIVE_ITEM_STATUSES.map((status) => ({ label: ITEM_STATUS_LABELS[status], value: status as ItemStatus })),
@@ -38,4 +45,8 @@ export function getMatchingAllergens(
   }
   const selectedIds = new Set(selectedAllergens.map((allergen) => allergen.id));
   return itemAllergens.filter((allergen) => selectedIds.has(allergen.id));
+}
+
+export function containsSelectedAllergen(item: MenuItem, selectedAllergens: Allergen[]): boolean {
+  return getMatchingAllergens(item.allergens, selectedAllergens).length > 0;
 }

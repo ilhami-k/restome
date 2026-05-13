@@ -8,8 +8,13 @@ import { useSession } from '../../../contexts/SessionContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useUserSettings } from '../../../contexts/UserSettingsContext';
 import { Colors, getCustomerColors } from '../../../constants/colors';
-import { formatPrice, getMatchingAllergens } from '../../../constants/ui';
-import type { Category, MenuItem } from '../../../types';
+import {
+  containsSelectedAllergen,
+  formatPrice,
+  getMatchingAllergens,
+  type CustomerMenuFilter,
+} from '../../../constants/ui';
+import type { MenuItem } from '../../../types';
 import { CartBar } from '../components/CartBar';
 import { CategoryFilter } from '../components/CategoryFilter';
 import { MenuHeader } from '../components/MenuHeader';
@@ -26,11 +31,12 @@ export default function MenuScreen() {
   const { theme } = useTheme();
   const { selectedAllergens } = useUserSettings();
   const { items: cartItems, itemCount, total } = useCart();
-  const [activeCategory, setActiveCategory] = useState<Category | undefined>(undefined);
-  const { items, loading } = useMenuItems(activeCategory);
+  const [activeFilter, setActiveFilter] = useState<CustomerMenuFilter>(undefined);
+  const category = activeFilter === 'allergens' ? undefined : activeFilter;
+  const { items, loading } = useMenuItems(category);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const colors = getCustomerColors(theme);
-  const suggestedItems = useSuggestedMenuItems(menuItems);
+  const suggestedItems = useSuggestedMenuItems(menuItems, selectedAllergens);
 
   useEffect(() => {
     setMenuItems(items);
@@ -65,6 +71,11 @@ export default function MenuScreen() {
     [colors, openItem, selectedAllergens]
   );
 
+  const displayedItems = menuItems.filter((item) => {
+    const hasSelectedAllergen = containsSelectedAllergen(item, selectedAllergens);
+    return activeFilter === 'allergens' ? hasSelectedAllergen : !hasSelectedAllergen;
+  });
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <StatusBar style={colors.statusBar} />
@@ -80,13 +91,13 @@ export default function MenuScreen() {
 
       <SuggestedItems items={suggestedItems} colors={colors} onOpenItem={openItem} />
 
-      <CategoryFilter activeCategory={activeCategory} colors={colors} onSelectCategory={setActiveCategory} />
+      <CategoryFilter activeFilter={activeFilter} colors={colors} onSelectFilter={setActiveFilter} />
 
       {loading ? (
         <ActivityIndicator style={styles.loader} color={Colors.primary} />
       ) : (
         <FlatList
-          data={menuItems}
+          data={displayedItems}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.list}

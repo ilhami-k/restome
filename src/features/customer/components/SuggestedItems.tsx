@@ -19,7 +19,7 @@ export function SuggestedItems({ items, colors, onOpenItem }: SuggestedItemsProp
 
   return (
     <View style={styles.suggestionBox}>
-      <Text style={[styles.suggestionTitle, { color: colors.text }]}>Suggestions</Text>
+      <Text style={[styles.suggestionTitle, { color: colors.text }]}>Déjà commandé</Text>
       <View style={styles.suggestionPills}>
         {items.map((item) => (
           <Pressable

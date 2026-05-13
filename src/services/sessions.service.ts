@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Session } from '../types';
+import { closeOpenOrderBySessionId } from './orders.service';
 
 export async function findOpenSessionByTableId(tableId: string): Promise<Session | null> {
   const { data, error } = await supabase
@@ -45,6 +46,8 @@ export async function fetchOpenSessions(): Promise<Session[]> {
 }
 
 export async function closeSession(sessionId: string): Promise<void> {
+  await closeOpenOrderBySessionId(sessionId);
+
   const { error } = await supabase
     .from('sessions')
     .update({ status: 'closed', closed_at: new Date().toISOString() })

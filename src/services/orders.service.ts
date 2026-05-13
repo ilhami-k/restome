@@ -90,7 +90,11 @@ export function subscribeToOrderItems(orderId: string, onChange: () => void) {
 
 export interface KitchenOrderItem extends OrderItem {
   order?: {
+    id?: string;
+    status?: string;
     session?: {
+      id?: string;
+      status?: string;
       table?: {
         number?: number;
       };
@@ -98,18 +102,38 @@ export interface KitchenOrderItem extends OrderItem {
   };
 }
 
-export async function fetchKitchenOrderItems(): Promise<KitchenOrderItem[]> {
-  const { data, error } = await supabase
+export async function fetchKitchenOrderItems(sessionId?: string): Promise<KitchenOrderItem[]> {
+  let query = supabase
     .from('order_items')
-    .select('*, menu_item:menu_items(*), order:orders(session:sessions(table:tables(number))))')
+    .select('*, menu_item:menu_items(*), order:orders!inner(id, status, session:sessions!inner(id, status, table:tables(number)))')
     .in('status', [...ACTIVE_ITEM_STATUSES])
+    .eq('order.status', 'open')
+    .eq('order.session.status', 'open')
     .order('created_at', { ascending: true });
+
+  if (sessionId) {
+    query = query.eq('order.session_id', sessionId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw error;
   }
 
   return (data ?? []) as unknown as KitchenOrderItem[];
+}
+
+export async function closeOpenOrderBySessionId(sessionId: string): Promise<void> {
+  const { error } = await supabase
+    .from('orders')
+    .update({ status: 'closed' })
+    .eq('session_id', sessionId)
+    .eq('status', 'open');
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function updateOrderItemStatus(itemId: string, status: ItemStatus): Promise<void> {
@@ -155,6 +179,12 @@ export function subscribeToKitchenOrderItems(onChange: () => void) {
   const channel = supabase
     .channel(createChannelName('kitchen_order_items'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+      onChange();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+      onChange();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => {
       onChange();
     })
     .subscribe();

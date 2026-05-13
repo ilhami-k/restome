@@ -1,34 +1,33 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Colors } from '../../../constants/colors';
-import { KitchenMessages } from '../../../constants/messages';
-import { KITCHEN_STATUS_FILTERS } from '../../../constants/ui';
-import { OrderCard } from '../components/OrderCard';
 import { useKitchenOrders } from '../hooks/useKitchenOrders';
 import { useKitchenSessions } from '../hooks/useKitchenSessions';
-import type { ItemStatus } from '../../../types';
 
 export default function KitchenDashboardScreen() {
   const router = useRouter();
   const { logout } = useAuth();
-  const [filter, setFilter] = useState<ItemStatus | 'all'>('all');
-  const { stats, groupedOrders, setItemStatus, sendItemMessage } = useKitchenOrders(filter);
-  const { sessions, closeOpenSession } = useKitchenSessions();
+  const { stats, groupedOrders, refreshOrders } = useKitchenOrders('all');
+  const { sessions, closeOpenSession, refreshSessions } = useKitchenSessions();
 
-  function markUnavailable(itemId: string) {
-    Alert.alert('Marquer indisponible', "Notifier le client que l'article n'est pas disponible ?", [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Confirmer',
-        onPress: () => {
-          void setItemStatus(itemId, 'unavailable', KitchenMessages.itemUnavailable);
-        },
-      },
-    ]);
+  useFocusEffect(
+    React.useCallback(() => {
+      void refreshSessions();
+      void refreshOrders();
+    }, [refreshOrders, refreshSessions])
+  );
+
+  async function closeSessionAndRefresh(sessionId: string) {
+    try {
+      await closeOpenSession(sessionId);
+      await refreshOrders();
+    } catch {
+      Alert.alert('Erreur', 'Impossible de fermer cette session.');
+    }
   }
 
   function confirmCloseSession(sessionId: string, tableNumber?: number) {
@@ -41,7 +40,7 @@ export default function KitchenDashboardScreen() {
           text: 'Fermer',
           style: 'destructive',
           onPress: () => {
-            void closeOpenSession(sessionId);
+            void closeSessionAndRefresh(sessionId);
           },
         },
       ]
@@ -87,68 +86,53 @@ export default function KitchenDashboardScreen() {
             <Text style={styles.statLabel}>PRÊTES</Text>
           </View>
         </View>
-
-        <View style={styles.pills}>
-          {KITCHEN_STATUS_FILTERS.map((filterOption) => (
-            <Pressable
-              key={filterOption.label}
-              style={({ pressed }) => [
-                styles.pill,
-                filter === filterOption.value && styles.pillActive,
-                pressed && styles.pressed,
-              ]}
-              onPress={() => setFilter(filterOption.value)}
-            >
-              <Text
-                style={[
-                  styles.pillText,
-                  filter === filterOption.value && styles.pillTextActive,
-                ]}
-              >
-                {filterOption.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         <View style={styles.sessionSection}>
-          <Text style={styles.sectionTitle}>SESSIONS OUVERTES</Text>
-          {sessions.map((session) => (
-            <View key={session.id} style={styles.sessionRow}>
-              <View style={styles.sessionInfo}>
-                <Text style={styles.sessionTitle}>Table {session.table?.number ?? '-'}</Text>
-                <Text style={styles.sessionMeta}>
-                  Ouverte à {new Date(session.created_at).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-              </View>
+          <Text style={styles.sectionTitle}>TABLES ACTIVES</Text>
+          {sessions.map((session) => {
+            const group = groupedOrders.find((entry) => entry.sessionId === session.id);
+            const itemCount = group?.items.length ?? 0;
+
+            return (
               <Pressable
-                style={({ pressed }) => [styles.closeSessionButton, pressed && styles.pressed]}
-                onPress={() => confirmCloseSession(session.id, session.table?.number)}
+                key={session.id}
+                style={({ pressed }) => [styles.sessionRow, pressed && styles.pressed]}
+                onPress={() =>
+                  router.push({
+                    pathname: '/(kitchen)/tables/[sessionId]',
+                    params: {
+                      sessionId: session.id,
+                      tableNumber: String(session.table?.number ?? ''),
+                    },
+                  })
+                }
               >
-                <Text style={styles.closeSessionText}>Fermer</Text>
+                <View style={styles.sessionInfo}>
+                  <View style={styles.sessionTitleRow}>
+                    <View style={styles.activeDot} />
+                    <Text style={styles.sessionTitle}>Table {session.table?.number ?? '-'}</Text>
+                  </View>
+                  <Text style={styles.sessionMeta}>
+                    {itemCount} article{itemCount > 1 ? 's' : ''} actif{itemCount > 1 ? 's' : ''} · ouverte à{' '}
+                    {new Date(session.created_at).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                </View>
+                <Pressable
+                  style={({ pressed }) => [styles.closeSessionButton, pressed && styles.pressed]}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    confirmCloseSession(session.id, session.table?.number);
+                  }}
+                >
+                  <Text style={styles.closeSessionText}>Fermer</Text>
+                </Pressable>
               </Pressable>
-            </View>
-          ))}
+            );
+          })}
           {sessions.length === 0 ? <Text style={styles.emptyInline}>Aucune session ouverte</Text> : null}
         </View>
-
-        {groupedOrders.map((group) => (
-          <OrderCard
-            key={`${group.tableNumber}-${group.createdAt}`}
-            group={group}
-            onUpdateStatus={(itemId, status) => {
-              void setItemStatus(itemId, status);
-            }}
-            onMarkUnavailable={markUnavailable}
-            onSendMessage={(itemId, message) => {
-              void sendItemMessage(itemId, message);
-            }}
-          />
-        ))}
-
-        {groupedOrders.length === 0 ? <Text style={styles.empty}>Aucune commande</Text> : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -218,28 +202,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     letterSpacing: 0.7,
   },
-  pills: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-  pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: Colors.kitchenCard,
-  },
-  pillActive: {
-    backgroundColor: Colors.primary,
-  },
-  pillText: {
-    fontSize: 12,
-    color: Colors.kitchenTextSecondary,
-  },
-  pillTextActive: {
-    color: Colors.white,
-    fontWeight: '600',
-  },
   list: {
     paddingHorizontal: 16,
     paddingBottom: 24,
@@ -266,6 +228,17 @@ const styles = StyleSheet.create({
   sessionInfo: {
     flex: 1,
   },
+  sessionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  activeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.statusReady,
+  },
   sessionTitle: {
     color: Colors.white,
     fontSize: 14,
@@ -286,11 +259,6 @@ const styles = StyleSheet.create({
     color: Colors.statusUnavailable,
     fontSize: 12,
     fontWeight: '700',
-  },
-  empty: {
-    color: Colors.kitchenTextSecondary,
-    textAlign: 'center',
-    marginTop: 40,
   },
   emptyInline: {
     color: Colors.kitchenTextSecondary,

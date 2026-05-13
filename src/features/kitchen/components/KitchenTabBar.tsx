@@ -21,7 +21,8 @@ export function KitchenTabBar({ state, navigation }: BottomTabBarProps) {
     .filter((route) => TAB_LABELS[route.name])
     .map((route) => ({ key: route.name, label: TAB_LABELS[route.name] }));
 
-  const activeKey = state.routes[state.index]?.name ?? tabs[0]?.key ?? '';
+  const routeName = state.routes[state.index]?.name ?? tabs[0]?.key ?? '';
+  const activeKey = TAB_LABELS[routeName] ? routeName : 'dashboard';
 
   return (
     <BottomTabBar

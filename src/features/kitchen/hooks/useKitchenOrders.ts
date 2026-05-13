@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   createStatusUpdate,
   fetchKitchenOrderItems,
@@ -9,19 +9,25 @@ import {
 import type { ItemStatus, KitchenStats } from '../../../types';
 
 export interface GroupedKitchenOrder {
+  sessionId: string;
+  orderId: string;
   tableNumber: number;
   createdAt: string;
   items: KitchenOrderItem[];
 }
 
-export function useKitchenOrders(filter: ItemStatus | 'all') {
+export function useKitchenOrders(filter: ItemStatus | 'all', sessionId?: string) {
   const [items, setItems] = useState<KitchenOrderItem[]>([]);
+
+  const refreshOrders = useCallback(async () => {
+    setItems(await fetchKitchenOrderItems(sessionId));
+  }, [sessionId]);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadOrders() {
-      const nextItems = await fetchKitchenOrderItems();
+      const nextItems = await fetchKitchenOrderItems(sessionId);
       if (mounted) {
         setItems(nextItems);
       }
@@ -36,7 +42,7 @@ export function useKitchenOrders(filter: ItemStatus | 'all') {
       mounted = false;
       unsubscribe();
     };
-  }, []);
+  }, [sessionId]);
 
   const stats = useMemo<KitchenStats>(() => {
     return {
@@ -49,10 +55,14 @@ export function useKitchenOrders(filter: ItemStatus | 'all') {
   const groupedOrders = useMemo(() => {
     const grouped = items.reduce<Record<string, GroupedKitchenOrder>>((accumulator, item) => {
       const tableNumber = item.order?.session?.table?.number ?? 0;
-      const key = `${tableNumber}-${item.order_id}`;
+      const itemSessionId = item.order?.session?.id ?? '';
+      const orderId = item.order?.id ?? item.order_id;
+      const key = `${itemSessionId}-${orderId}`;
 
       if (!accumulator[key]) {
         accumulator[key] = {
+          sessionId: itemSessionId,
+          orderId,
           tableNumber,
           createdAt: item.created_at,
           items: [],
@@ -77,13 +87,12 @@ export function useKitchenOrders(filter: ItemStatus | 'all') {
       await createStatusUpdate(itemId, message);
     }
 
-    const nextItems = await fetchKitchenOrderItems();
-    setItems(nextItems);
+    await refreshOrders();
   }
 
   async function sendItemMessage(itemId: string, message: string) {
     await createStatusUpdate(itemId, message);
   }
 
-  return { stats, groupedOrders, setItemStatus, sendItemMessage };
+  return { stats, groupedOrders, refreshOrders, setItemStatus, sendItemMessage };
 }

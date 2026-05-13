@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Colors } from '../../../constants/colors';
 import { KitchenMessages } from '../../../constants/messages';
+import { KitchenAvailabilityMessage } from '../components/KitchenAvailabilityMessage';
 import { KitchenMenuForm } from '../components/KitchenMenuForm';
 import { KitchenMenuHeader } from '../components/KitchenMenuHeader';
 import { KitchenMenuList } from '../components/KitchenMenuList';
@@ -106,12 +107,12 @@ export default function MenuManagerScreen() {
 
       <KitchenMenuSearch
         search={search}
-        availabilityMessage={availabilityMessage}
         onChangeSearch={setSearch}
-        onChangeAvailabilityMessage={setAvailabilityMessage}
       />
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        <KitchenAvailabilityMessage value={availabilityMessage} onChange={setAvailabilityMessage} />
+
         <KitchenMenuForm
           form={form}
           allergens={allergens}

@@ -2,36 +2,35 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../../constants/colors';
 import type { getCustomerColors } from '../../../constants/colors';
-import { CUSTOMER_CATEGORY_FILTERS } from '../../../constants/ui';
-import type { Category } from '../../../types';
+import { CUSTOMER_MENU_FILTERS, type CustomerMenuFilter } from '../../../constants/ui';
 
 type CustomerColors = ReturnType<typeof getCustomerColors>;
 
 interface CategoryFilterProps {
-  activeCategory?: Category;
+  activeFilter: CustomerMenuFilter;
   colors: CustomerColors;
-  onSelectCategory: (category?: Category) => void;
+  onSelectFilter: (filter: CustomerMenuFilter) => void;
 }
 
-export function CategoryFilter({ activeCategory, colors, onSelectCategory }: CategoryFilterProps) {
+export function CategoryFilter({ activeFilter, colors, onSelectFilter }: CategoryFilterProps) {
   return (
     <View style={styles.pills}>
-      {CUSTOMER_CATEGORY_FILTERS.map((category) => (
+      {CUSTOMER_MENU_FILTERS.map((category) => (
         <Pressable
           key={category.label}
           style={({ pressed }) => [
             styles.pill,
             { backgroundColor: colors.surface, borderColor: colors.border },
-            activeCategory === category.value && styles.pillActive,
+            activeFilter === category.value && styles.pillActive,
             pressed && styles.pressed,
           ]}
-          onPress={() => onSelectCategory(category.value)}
+          onPress={() => onSelectFilter(category.value)}
         >
           <Text
             style={[
               styles.pillText,
               { color: colors.textSecondary },
-              activeCategory === category.value && styles.pillTextActive,
+              activeFilter === category.value && styles.pillTextActive,
             ]}
           >
             {category.label}
@@ -45,6 +44,7 @@ export function CategoryFilter({ activeCategory, colors, onSelectCategory }: Cat
 const styles = StyleSheet.create({
   pills: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: 16,
     gap: 8,
     marginBottom: 12,
