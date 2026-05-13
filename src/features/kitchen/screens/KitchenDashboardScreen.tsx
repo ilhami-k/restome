@@ -55,38 +55,25 @@ export default function KitchenDashboardScreen() {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={styles.titleBlock}>
-            <Text style={styles.headerLabel}>CUISINE</Text>
-            <Text style={styles.headerTitle}>Commandes en direct</Text>
-          </View>
-          <View style={styles.headerActions}>
-            <View style={styles.liveBadge}>
+            <View style={styles.titleRow}>
+              <Text style={styles.headerTitle}>Commandes</Text>
               <View style={styles.liveDot} />
-              <Text style={styles.liveText}>EN DIRECT</Text>
             </View>
-            <Pressable
-              style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
-              onPress={() => router.push('/(kitchen)/menu-manager')}
-            >
-              <Text style={styles.menuButtonText}>Menu</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => pressed && styles.pressed}
-              onPress={() => {
-                void logout().then(() => {
-                  router.replace('/');
-                });
-              }}
-            >
-              <Text style={styles.logout}>Déconnexion</Text>
-            </Pressable>
           </View>
+          <Pressable
+            style={({ pressed }) => pressed && styles.pressed}
+            onPress={() => {
+              void logout().then(() => {
+                router.replace('/');
+              });
+            }}
+            hitSlop={8}
+          >
+            <Text style={styles.logout}>Déconnexion</Text>
+          </Pressable>
         </View>
 
         <View style={styles.stats}>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{sessions.length}</Text>
-            <Text style={styles.statLabel}>SESSIONS</Text>
-          </View>
           <View style={styles.statBox}>
             <Text style={styles.statNumber}>{stats.pending}</Text>
             <Text style={styles.statLabel}>EN ATTENTE</Text>
@@ -180,61 +167,31 @@ const styles = StyleSheet.create({
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 12,
   },
   titleBlock: {
     flex: 1,
     minWidth: 0,
   },
-  headerLabel: {
-    fontSize: 11,
-    color: Colors.kitchenTextSecondary,
-    letterSpacing: 1,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: Colors.white,
-    marginTop: 2,
-  },
-  headerActions: {
-    alignItems: 'flex-end',
-    flexShrink: 0,
-    gap: 6,
-  },
-  liveBadge: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.statusReady + '20',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
+    gap: 8,
   },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.statusReady,
-  },
-  liveText: {
-    fontSize: 10,
+  headerTitle: {
+    fontSize: 24,
     fontWeight: '700',
-    color: Colors.statusReady,
-  },
-  menuButton: {
-    backgroundColor: Colors.kitchenCard,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  menuButtonText: {
-    fontSize: 12,
     color: Colors.white,
   },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.statusReady,
+  },
   logout: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.kitchenTextSecondary,
   },
   stats: {
@@ -244,8 +201,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   statBox: {
-    flexBasis: '48%',
-    flexGrow: 1,
+    flex: 1,
     backgroundColor: Colors.kitchenCard,
     borderRadius: 10,
     paddingVertical: 10,

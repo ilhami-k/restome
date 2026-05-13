@@ -6,11 +6,15 @@ interface CartBarProps {
   itemCount: number;
   totalLabel: string;
   onPress: () => void;
+  bottomOffset?: number;
 }
 
-export function CartBar({ itemCount, totalLabel, onPress }: CartBarProps) {
+export function CartBar({ itemCount, totalLabel, onPress, bottomOffset = 20 }: CartBarProps) {
   return (
-    <Pressable style={({ pressed }) => [styles.cartBar, pressed && styles.pressed]} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [styles.cartBar, { bottom: bottomOffset }, pressed && styles.pressed]}
+      onPress={onPress}
+    >
       <View style={styles.cartBarCount}>
         <Text style={styles.cartBarCountText}>{itemCount}</Text>
       </View>

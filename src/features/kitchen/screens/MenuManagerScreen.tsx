@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
 import { Colors } from '../../../constants/colors';
 import { KitchenMessages } from '../../../constants/messages';
 import { KitchenMenuForm } from '../components/KitchenMenuForm';
@@ -15,7 +14,6 @@ import type { MenuFormState } from '../utils/menu-form';
 import type { Category, MenuItem } from '../../../types';
 
 export default function MenuManagerScreen() {
-  const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<MenuFormState>(emptyMenuForm);
@@ -104,7 +102,7 @@ export default function MenuManagerScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="light" />
 
-      <KitchenMenuHeader onBack={() => router.back()} />
+      <KitchenMenuHeader />
 
       <KitchenMenuSearch
         search={search}

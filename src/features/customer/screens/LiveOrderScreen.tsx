@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
 import { useSession } from '../../../contexts/SessionContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { Colors, getCustomerColors } from '../../../constants/colors';
 import { LiveOrderBanner } from '../components/LiveOrderBanner';
 import { LiveOrderItemCard } from '../components/LiveOrderItemCard';
+import { PostOrderTabBar } from '../components/PostOrderTabBar';
 import { useLiveOrder } from '../hooks/useLiveOrder';
 
 export default function LiveOrderScreen() {
-  const router = useRouter();
   const { session, table } = useSession();
   const { theme } = useTheme();
   const { items, messagesByItemId } = useLiveOrder(session?.id);
@@ -41,16 +40,7 @@ export default function LiveOrderScreen() {
         {items.length === 0 ? <Text style={[styles.empty, { color: colors.textSecondary }]}>Aucun article en cours</Text> : null}
       </ScrollView>
 
-      <Pressable
-        style={({ pressed }) => [
-          styles.addMoreButton,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-          pressed && styles.pressed,
-        ]}
-        onPress={() => router.push('/menu')}
-      >
-        <Text style={[styles.addMoreText, { color: colors.text }]}>+ Ajouter des articles</Text>
-      </Pressable>
+      <PostOrderTabBar />
     </SafeAreaView>
   );
 }
@@ -75,22 +65,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: Colors.customerTextSecondary,
     marginTop: 40,
-  },
-  addMoreButton: {
-    backgroundColor: Colors.customerSurface,
-    borderRadius: 24,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: Colors.customerBorder,
-  },
-  addMoreText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.customerText,
-  },
-  pressed: {
-    opacity: 0.8,
   },
 });

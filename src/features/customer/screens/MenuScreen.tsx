@@ -14,20 +14,18 @@ import { CartBar } from '../components/CartBar';
 import { CategoryFilter } from '../components/CategoryFilter';
 import { MenuHeader } from '../components/MenuHeader';
 import { MenuItemRow } from '../components/MenuItemRow';
-import { OrderStatusButton } from '../components/OrderStatusButton';
+import { PostOrderTabBar } from '../components/PostOrderTabBar';
 import { SuggestedItems } from '../components/SuggestedItems';
 import { useMenuAvailabilityRealtime } from '../hooks/useMenuAvailabilityRealtime';
-import { useLiveOrder } from '../hooks/useLiveOrder';
 import { useMenuItems } from '../hooks/useMenuItems';
 import { useSuggestedMenuItems } from '../hooks/useSuggestedMenuItems';
 
 export default function MenuScreen() {
   const router = useRouter();
-  const { session, table } = useSession();
+  const { table } = useSession();
   const { theme } = useTheme();
   const { selectedAllergens } = useUserSettings();
   const { items: cartItems, itemCount, total } = useCart();
-  const { items: liveOrderItems } = useLiveOrder(session?.id);
   const [activeCategory, setActiveCategory] = useState<Category | undefined>(undefined);
   const { items, loading } = useMenuItems(activeCategory);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -80,14 +78,6 @@ export default function MenuScreen() {
         onOpenCart={() => router.push('/order-summary')}
       />
 
-      {session ? (
-        <OrderStatusButton
-          itemCount={liveOrderItems.length}
-          colors={colors}
-          onPress={() => router.push('/live-order')}
-        />
-      ) : null}
-
       <SuggestedItems items={suggestedItems} colors={colors} onOpenItem={openItem} />
 
       <CategoryFilter activeCategory={activeCategory} colors={colors} onSelectCategory={setActiveCategory} />
@@ -109,8 +99,11 @@ export default function MenuScreen() {
           itemCount={itemCount}
           totalLabel={formatPrice(total)}
           onPress={() => router.push('/order-summary')}
+          bottomOffset={80}
         />
       ) : null}
+
+      <PostOrderTabBar />
     </SafeAreaView>
   );
 }
