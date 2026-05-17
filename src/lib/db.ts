@@ -1,29 +1,47 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { Allergen } from '../types';
 
+const DATABASE_VERSION = 1;
+
 export async function initializeDatabase(db: SQLiteDatabase): Promise<void> {
-  await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS device (
-      id TEXT PRIMARY KEY
-    );
+  const versionRow = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+  let currentVersion = versionRow?.user_version ?? 0;
 
-    CREATE TABLE IF NOT EXISTS preferences (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
-      theme TEXT CHECK (theme IN ('light', 'dark'))
-    );
+  if (currentVersion >= DATABASE_VERSION) {
+    return;
+  }
 
-    CREATE TABLE IF NOT EXISTS order_history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      menu_item_id TEXT NOT NULL,
-      menu_item_name TEXT NOT NULL,
-      ordered_at TEXT NOT NULL
-    );
+  if (currentVersion === 0) {
+    await db.execAsync(`
+      PRAGMA journal_mode = WAL;
 
-    CREATE TABLE IF NOT EXISTS user_allergens (
-      allergen_id TEXT PRIMARY KEY,
-      allergen_name TEXT NOT NULL
-    );
-  `);
+      CREATE TABLE IF NOT EXISTS device (
+        id TEXT PRIMARY KEY
+      );
+
+      CREATE TABLE IF NOT EXISTS preferences (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        theme TEXT CHECK (theme IN ('light', 'dark'))
+      );
+
+      CREATE TABLE IF NOT EXISTS order_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        menu_item_id TEXT NOT NULL,
+        menu_item_name TEXT NOT NULL,
+        ordered_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS user_allergens (
+        allergen_id TEXT PRIMARY KEY,
+        allergen_name TEXT NOT NULL
+      );
+
+      INSERT OR IGNORE INTO preferences (id, theme) VALUES (1, 'light');
+    `);
+    currentVersion = 1;
+  }
+
+  await db.execAsync(`PRAGMA user_version = ${currentVersion}`);
 }
 
 export async function ensureDeviceId(db: SQLiteDatabase): Promise<string> {

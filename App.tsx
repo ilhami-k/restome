@@ -43,24 +43,38 @@ function ConnectionOverlay() {
   );
 }
 
+function AppShell({ children }: AppProvidersProps) {
+  return (
+    <>
+      <StatusBar style="auto" />
+      {children}
+      <ConnectionOverlay />
+    </>
+  );
+}
+
+function AppStateProviders({ children }: AppProvidersProps) {
+  return (
+    <SQLiteProvider databaseName="restome.db" onInit={initializeDatabase}>
+      <AuthProvider>
+        <ThemeProvider>
+          <UserSettingsProvider>
+            <SessionProvider>
+              <CartProvider>
+                <AppShell>{children}</AppShell>
+              </CartProvider>
+            </SessionProvider>
+          </UserSettingsProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </SQLiteProvider>
+  );
+}
+
 export function AppProviders({ children }: AppProvidersProps) {
   return (
     <GestureHandlerRootView style={styles.root}>
-      <SQLiteProvider databaseName="restome.db" onInit={initializeDatabase}>
-        <AuthProvider>
-          <ThemeProvider>
-            <UserSettingsProvider>
-              <SessionProvider>
-                <CartProvider>
-                  <StatusBar style="auto" />
-                  {children}
-                  <ConnectionOverlay />
-                </CartProvider>
-              </SessionProvider>
-            </UserSettingsProvider>
-          </ThemeProvider>
-        </AuthProvider>
-      </SQLiteProvider>
+      <AppStateProviders>{children}</AppStateProviders>
     </GestureHandlerRootView>
   );
 }
