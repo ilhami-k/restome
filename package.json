@@ -10,9 +10,10 @@
     "android": "npx -y -p node@20 node ./node_modules/expo/bin/cli start --android",
     "ios": "npx -y -p node@20 node ./node_modules/expo/bin/cli start --ios",
     "ts:check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "npx -y -p node@20 node ./node_modules/vitest/vitest.mjs run"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@react-native-community/netinfo": "^11.4.1",
     "@supabase/supabase-js": "^2.49.4",
     "expo": "~54.0.34",
@@ -22,10 +23,12 @@
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
+    "react-hook-form": "^7.75.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-safe-area-context": "~5.6.0",
-    "react-native-screens": "~4.16.0"
+    "react-native-screens": "~4.16.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@expo/ngrok": "^4.1.3",
