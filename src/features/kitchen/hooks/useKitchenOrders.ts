@@ -18,18 +18,40 @@ export interface GroupedKitchenOrder {
 
 export function useKitchenOrders(filter: ItemStatus | 'all', sessionId?: string) {
   const [items, setItems] = useState<KitchenOrderItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refreshOrders = useCallback(async () => {
-    setItems(await fetchKitchenOrderItems(sessionId));
+    setLoading(true);
+    try {
+      setItems(await fetchKitchenOrderItems(sessionId));
+      setError(null);
+    } catch (loadError: unknown) {
+      setError(loadError instanceof Error ? loadError.message : 'Impossible de charger les commandes.');
+    } finally {
+      setLoading(false);
+    }
   }, [sessionId]);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadOrders() {
-      const nextItems = await fetchKitchenOrderItems(sessionId);
-      if (mounted) {
-        setItems(nextItems);
+      setLoading(true);
+      try {
+        const nextItems = await fetchKitchenOrderItems(sessionId);
+        if (mounted) {
+          setItems(nextItems);
+          setError(null);
+        }
+      } catch (loadError: unknown) {
+        if (mounted) {
+          setError(loadError instanceof Error ? loadError.message : 'Impossible de charger les commandes.');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
 
@@ -94,5 +116,5 @@ export function useKitchenOrders(filter: ItemStatus | 'all', sessionId?: string)
     await createStatusUpdate(itemId, message);
   }
 
-  return { stats, groupedOrders, refreshOrders, setItemStatus, sendItemMessage };
+  return { stats, groupedOrders, loading, error, refreshOrders, setItemStatus, sendItemMessage };
 }

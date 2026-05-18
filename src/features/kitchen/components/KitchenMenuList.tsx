@@ -1,13 +1,19 @@
 import React from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Colors } from '../../../constants/colors';
 import { CATEGORY_LABELS, formatPrice } from '../../../constants/ui';
 import type { Category, MenuItem } from '../../../types';
+
+export type KitchenMenuListEntry =
+  | { id: string; type: 'section'; category: Category }
+  | { id: string; type: 'item'; item: MenuItem };
 
 interface KitchenMenuListProps {
   categoryOrder: readonly Category[];
   filteredItemCount: number;
   itemsByCategory: Record<string, MenuItem[]>;
+  listRef?: React.Ref<FlatList<KitchenMenuListEntry>>;
+  ListHeaderComponent?: React.ReactElement;
   onToggleItem: (item: MenuItem) => void;
   onEditItem: (item: MenuItem) => void;
 }
@@ -16,63 +22,81 @@ export function KitchenMenuList({
   categoryOrder,
   filteredItemCount,
   itemsByCategory,
+  listRef,
+  ListHeaderComponent,
   onToggleItem,
   onEditItem,
 }: KitchenMenuListProps) {
+  const entries = categoryOrder.flatMap<KitchenMenuListEntry>((category) => {
+    const categoryItems = itemsByCategory[category];
+    if (categoryItems.length === 0) {
+      return [];
+    }
+
+    return [
+      { id: `section-${category}`, type: 'section', category },
+      ...categoryItems.map((item) => ({ id: item.id, type: 'item' as const, item })),
+    ];
+  });
+
   return (
-    <>
-      {categoryOrder.map((category) => {
-        const categoryItems = itemsByCategory[category];
-        if (categoryItems.length === 0) {
-          return null;
+    <FlatList
+      ref={listRef}
+      data={entries}
+      keyExtractor={(entry) => entry.id}
+      contentContainerStyle={styles.list}
+      showsVerticalScrollIndicator={false}
+      ListHeaderComponent={ListHeaderComponent}
+      ListEmptyComponent={filteredItemCount === 0 ? <Text style={styles.empty}>Aucun article trouvé</Text> : null}
+      renderItem={({ item: entry }) => {
+        if (entry.type === 'section') {
+          return <Text style={styles.sectionTitle}>{CATEGORY_LABELS[entry.category].toUpperCase()}</Text>;
         }
 
+        const item = entry.item;
         return (
-          <View key={category} style={styles.section}>
-            <Text style={styles.sectionTitle}>{CATEGORY_LABELS[category].toUpperCase()}</Text>
-            {categoryItems.map((item) => (
-              <View key={item.id} style={styles.row}>
-                <Switch
-                  value={item.available}
-                  onValueChange={() => onToggleItem(item)}
-                  trackColor={{ false: Colors.kitchenBorder, true: Colors.primary + '80' }}
-                  thumbColor={item.available ? Colors.primary : Colors.kitchenTextSecondary}
-                />
-                <View style={styles.rowContent}>
-                  <Text style={styles.itemName}>{item.name}</Text>
-                  <Text style={styles.itemMeta}>
-                    {item.available ? 'Visible dans le menu' : 'Masqué côté client'}
-                  </Text>
-                  {!item.available && item.availability_message ? (
-                    <Text style={styles.itemMessage}>{item.availability_message}</Text>
-                  ) : null}
-                </View>
-                <View style={styles.rowActions}>
-                  <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
-                  <Pressable style={({ pressed }) => [styles.editButton, pressed && styles.pressed]} onPress={() => onEditItem(item)}>
-                    <Text style={styles.editButtonText}>Editer</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ))}
+          <View style={styles.row}>
+            <Switch
+              value={item.available}
+              onValueChange={() => onToggleItem(item)}
+              trackColor={{ false: Colors.kitchenBorder, true: Colors.primary + '80' }}
+              thumbColor={item.available ? Colors.primary : Colors.kitchenTextSecondary}
+            />
+            <View style={styles.rowContent}>
+              <Text style={styles.itemName}>{item.name}</Text>
+              <Text style={styles.itemMeta}>
+                {item.available ? 'Visible dans le menu' : 'Masqué côté client'}
+              </Text>
+              {!item.available && item.availability_message ? (
+                <Text style={styles.itemMessage}>{item.availability_message}</Text>
+              ) : null}
+            </View>
+            <View style={styles.rowActions}>
+              <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+              <Pressable
+                style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}
+                onPress={() => onEditItem(item)}
+              >
+                <Text style={styles.editButtonText}>Editer</Text>
+              </Pressable>
+            </View>
           </View>
         );
-      })}
-
-      {filteredItemCount === 0 ? <Text style={styles.empty}>Aucun article trouvé</Text> : null}
-    </>
+      }}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  section: {
-    marginBottom: 20,
+  list: {
+    paddingBottom: 24,
   },
   sectionTitle: {
     fontSize: 11,
     color: Colors.kitchenTextSecondary,
     letterSpacing: 1,
     marginBottom: 8,
+    marginTop: 12,
   },
   row: {
     flexDirection: 'row',

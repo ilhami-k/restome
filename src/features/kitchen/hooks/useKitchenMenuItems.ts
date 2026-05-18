@@ -14,15 +14,29 @@ import type { Allergen, MenuItem } from '../../../types';
 export function useKitchenMenuItems(search: string) {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [allergens, setAllergens] = useState<Allergen[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadData() {
-      const [nextItems, nextAllergens] = await Promise.all([fetchKitchenMenuItems(), fetchAllergens()]);
-      if (mounted) {
-        setItems(nextItems);
-        setAllergens(nextAllergens);
+      setLoading(true);
+      try {
+        const [nextItems, nextAllergens] = await Promise.all([fetchKitchenMenuItems(), fetchAllergens()]);
+        if (mounted) {
+          setItems(nextItems);
+          setAllergens(nextAllergens);
+          setError(null);
+        }
+      } catch (loadError: unknown) {
+        if (mounted) {
+          setError(loadError instanceof Error ? loadError.message : 'Impossible de charger le menu.');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
 
@@ -79,6 +93,8 @@ export function useKitchenMenuItems(search: string) {
     filteredItems,
     itemsByCategory,
     categoryOrder: CATEGORIES,
+    loading,
+    error,
     toggleItemAvailability,
     saveMenuItem,
     addAllergen,

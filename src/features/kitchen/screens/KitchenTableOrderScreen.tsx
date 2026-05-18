@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -17,7 +17,7 @@ export default function KitchenTableOrderScreen() {
   const currentSessionId = Array.isArray(sessionId) ? sessionId[0] : sessionId;
   const [filter, setFilter] = useState<ItemStatus | 'all'>('all');
   const [closing, setClosing] = useState(false);
-  const { groupedOrders, setItemStatus, sendItemMessage } = useKitchenOrders(filter, currentSessionId);
+  const { groupedOrders, loading, error, setItemStatus, sendItemMessage } = useKitchenOrders(filter, currentSessionId);
   const { closeOpenSession } = useKitchenSessions();
   const title = tableNumber ? `Table ${tableNumber}` : 'Table';
 
@@ -101,10 +101,19 @@ export default function KitchenTableOrderScreen() {
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        {groupedOrders.map((group) => (
+      <FlatList
+        data={groupedOrders}
+        keyExtractor={(group) => `${group.sessionId}-${group.orderId}`}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <>
+            {loading ? <ActivityIndicator color={Colors.primary} style={styles.loader} /> : null}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          </>
+        }
+        renderItem={({ item: group }) => (
           <OrderCard
-            key={`${group.sessionId}-${group.orderId}`}
             group={group}
             onUpdateStatus={(itemId, status) => {
               void setItemStatus(itemId, status);
@@ -114,10 +123,9 @@ export default function KitchenTableOrderScreen() {
               void sendItemMessage(itemId, message);
             }}
           />
-        ))}
-
-        {groupedOrders.length === 0 ? <Text style={styles.empty}>Aucune commande active</Text> : null}
-      </ScrollView>
+        )}
+        ListEmptyComponent={!loading && !error ? <Text style={styles.empty}>Aucune commande active</Text> : null}
+      />
     </SafeAreaView>
   );
 }
@@ -191,6 +199,14 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: 16,
     paddingBottom: 24,
+  },
+  loader: {
+    marginTop: 24,
+  },
+  errorText: {
+    color: Colors.statusUnavailable,
+    textAlign: 'center',
+    marginTop: 24,
   },
   empty: {
     color: Colors.kitchenTextSecondary,
