@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { FlatList, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useSession } from '../../../contexts/SessionContext';
@@ -32,13 +32,18 @@ export default function LiveOrderScreen() {
         TABLE {table?.number ?? ''} · SUIVI EN DIRECT
       </Text>
 
-      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        {items.map((item) => (
-          <LiveOrderItemCard key={item.id} item={item} message={messagesByItemId[item.id]} colors={colors} />
-        ))}
-
-        {items.length === 0 ? <Text style={[styles.empty, { color: colors.textSecondary }]}>Aucun article en cours</Text> : null}
-      </ScrollView>
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <LiveOrderItemCard item={item} message={messagesByItemId[item.id]} colors={colors} />
+        )}
+        ListEmptyComponent={
+          <Text style={[styles.empty, { color: colors.textSecondary }]}>Aucun article en cours</Text>
+        }
+      />
 
       <PostOrderTabBar />
     </SafeAreaView>

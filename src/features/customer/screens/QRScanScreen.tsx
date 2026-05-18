@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 import { useSession } from '../../../contexts/SessionContext';
 import { Colors } from '../../../constants/colors';
 import { useTableSession } from '../hooks/useTableSession';
+import { notifySessionJoined } from '../../../services/sessions.service';
 
 const KITCHEN_QR_CODE = 'KITCHEN_001';
 
@@ -66,6 +67,7 @@ export default function QRScanScreen() {
                 text: 'Rejoindre',
                 onPress: () => {
                   setSessionData(result.session, result.table);
+                  void notifySessionJoined(result.session.id, result.table.number);
                   goToMenu();
                 },
               },

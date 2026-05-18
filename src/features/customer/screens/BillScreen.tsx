@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Colors, getCustomerColors } from '../../../constants/colors';
@@ -42,13 +42,13 @@ export default function BillScreen() {
         </Text>
       </View>
 
-      <ScrollView
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-      >
-        {items.map((item) => (
+        renderItem={({ item }) => (
           <View
-            key={item.id}
             style={[styles.row, { borderBottomColor: colors.border }]}
           >
             <View style={styles.rowContent}>
@@ -67,14 +67,13 @@ export default function BillScreen() {
               {formatPrice(item.menu_item?.price ?? 0)}
             </Text>
           </View>
-        ))}
-
-        {items.length === 0 ? (
+        )}
+        ListEmptyComponent={
           <Text style={[styles.empty, { color: colors.textSecondary }]}>
             Aucun article commandé pour le moment
           </Text>
-        ) : null}
-      </ScrollView>
+        }
+      />
 
       {items.length > 0 ? (
         <View

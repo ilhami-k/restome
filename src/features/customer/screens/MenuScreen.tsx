@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
@@ -25,6 +25,8 @@ import { useMenuAvailabilityRealtime } from '../hooks/useMenuAvailabilityRealtim
 import { useMenuItems } from '../hooks/useMenuItems';
 import { useSuggestedMenuItems } from '../hooks/useSuggestedMenuItems';
 
+const EMPTY_MATCHING_ALLERGENS: string[] = [];
+
 export default function MenuScreen() {
   const router = useRouter();
   const { table } = useSession();
@@ -33,10 +35,22 @@ export default function MenuScreen() {
   const { items: cartItems, itemCount, total } = useCart();
   const [activeFilter, setActiveFilter] = useState<CustomerMenuFilter>(undefined);
   const category = activeFilter === 'allergens' ? undefined : activeFilter;
-  const { items, loading } = useMenuItems(category);
+  const { items, loading, error } = useMenuItems(category);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const colors = getCustomerColors(theme);
+  const colors = useMemo(() => getCustomerColors(theme), [theme]);
   const suggestedItems = useSuggestedMenuItems(menuItems, selectedAllergens);
+  const matchingAllergensByItemId = useMemo(() => {
+    const nextMap = new Map<string, string[]>();
+
+    for (const item of menuItems) {
+      nextMap.set(
+        item.id,
+        getMatchingAllergens(item.allergens, selectedAllergens).map((allergen) => allergen.name)
+      );
+    }
+
+    return nextMap;
+  }, [menuItems, selectedAllergens]);
 
   useEffect(() => {
     setMenuItems(items);
@@ -54,7 +68,7 @@ export default function MenuScreen() {
 
   const openItem = useCallback(
     (itemId: string) => {
-      router.push(`/${itemId}`);
+      router.push({ pathname: '/items/[itemId]', params: { itemId } });
     },
     [router]
   );
@@ -65,16 +79,16 @@ export default function MenuScreen() {
         item={item}
         colors={colors}
         onOpen={openItem}
-        matchingAllergens={getMatchingAllergens(item.allergens, selectedAllergens).map((allergen) => allergen.name)}
+        matchingAllergens={matchingAllergensByItemId.get(item.id) ?? EMPTY_MATCHING_ALLERGENS}
       />
     ),
-    [colors, openItem, selectedAllergens]
+    [colors, matchingAllergensByItemId, openItem]
   );
 
-  const displayedItems = menuItems.filter((item) => {
+  const displayedItems = useMemo(() => menuItems.filter((item) => {
     const hasSelectedAllergen = containsSelectedAllergen(item, selectedAllergens);
     return activeFilter === 'allergens' ? hasSelectedAllergen : !hasSelectedAllergen;
-  });
+  }), [activeFilter, menuItems, selectedAllergens]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -95,6 +109,8 @@ export default function MenuScreen() {
 
       {loading ? (
         <ActivityIndicator style={styles.loader} color={Colors.primary} />
+      ) : error ? (
+        <Text style={[styles.errorText, { color: colors.textSecondary }]}>{error}</Text>
       ) : (
         <FlatList
           data={displayedItems}
@@ -126,6 +142,11 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 24,
+  },
+  errorText: {
+    marginTop: 24,
+    paddingHorizontal: 20,
+    textAlign: 'center',
   },
   list: {
     paddingHorizontal: 16,

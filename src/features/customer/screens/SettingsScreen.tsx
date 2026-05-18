@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
@@ -19,6 +19,7 @@ export default function SettingsScreen() {
     () => new Set(selectedAllergens.map((allergen) => allergen.id)),
     [selectedAllergens]
   );
+  const visibleAllergens = !isLoadingSettings && !isLoading && !error ? allergens : [];
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -60,42 +61,46 @@ export default function SettingsScreen() {
         ) : null}
       </View>
 
-      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        {isLoadingSettings || isLoading ? (
-          <ActivityIndicator size="large" color={Colors.primary} style={styles.loader} />
-        ) : null}
+      <FlatList
+        data={visibleAllergens}
+        keyExtractor={(allergen) => allergen.id}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <>
+            {isLoadingSettings || isLoading ? (
+              <ActivityIndicator size="large" color={Colors.primary} style={styles.loader} />
+            ) : null}
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+          </>
+        }
+        renderItem={({ item: allergen }) => {
+          const isSelected = selectedIds.has(allergen.id);
 
-        {!isLoadingSettings && !isLoading && !error
-          ? allergens.map((allergen) => {
-              const isSelected = selectedIds.has(allergen.id);
-
-              return (
-                <Pressable
-                  key={allergen.id}
-                  style={({ pressed }) => [
-                    styles.row,
-                    { backgroundColor: colors.surface, borderColor: colors.border },
-                    isSelected && styles.rowSelected,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={() => toggleAllergen(allergen)}
-                >
-                  <View style={styles.rowContent}>
-                    <Text style={[styles.rowTitle, { color: colors.text }]}>{allergen.name}</Text>
-                    <Text style={[styles.rowText, { color: colors.textSecondary }]}>
-                      {isSelected ? 'Pris en compte dans le menu' : 'Non sélectionné'}
-                    </Text>
-                  </View>
-                  <View style={[styles.check, isSelected && styles.checkSelected]}>
-                    {isSelected ? <Text style={styles.checkText}>✓</Text> : null}
-                  </View>
-                </Pressable>
-              );
-            })
-          : null}
-      </ScrollView>
+          return (
+            <Pressable
+              style={({ pressed }) => [
+                styles.row,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                isSelected && styles.rowSelected,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => toggleAllergen(allergen)}
+            >
+              <View style={styles.rowContent}>
+                <Text style={[styles.rowTitle, { color: colors.text }]}>{allergen.name}</Text>
+                <Text style={[styles.rowText, { color: colors.textSecondary }]}>
+                  {isSelected ? 'Pris en compte dans le menu' : 'Non sélectionné'}
+                </Text>
+              </View>
+              <View style={[styles.check, isSelected && styles.checkSelected]}>
+                {isSelected ? <Text style={styles.checkText}>✓</Text> : null}
+              </View>
+            </Pressable>
+          );
+        }}
+      />
     </SafeAreaView>
   );
 }
