@@ -1,13 +1,20 @@
+import { z } from 'zod';
+import { CATEGORIES } from '../../../types';
 import type { Category } from '../../../types';
 
-export interface MenuFormState {
-  id?: string;
-  name: string;
-  price: string;
-  category: Category;
-  imageUrl: string;
-  allergenIds: string[];
-}
+export const menuItemFormSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().trim().min(1, 'Renseignez un nom.'),
+  price: z.string().trim().refine((value) => {
+    const price = Number(value.replace(',', '.'));
+    return !Number.isNaN(price) && price >= 0;
+  }, 'Renseignez un prix valide.'),
+  category: z.enum(CATEGORIES),
+  imageUrl: z.string().trim(),
+  allergenIds: z.array(z.string()),
+});
+
+export type MenuFormState = z.infer<typeof menuItemFormSchema>;
 
 export interface ParsedMenuItemForm {
   name: string;
@@ -31,23 +38,25 @@ export const emptyMenuForm: MenuFormState = {
 };
 
 export function parseMenuItemForm(form: MenuFormState): MenuFormParseResult {
-  const name = form.name.trim();
-  const price = Number(form.price.replace(',', '.'));
+  const result = menuItemFormSchema.safeParse(form);
 
-  if (!name || Number.isNaN(price) || price < 0) {
+  if (!result.success) {
     return {
       input: null,
-      errorMessage: 'Renseignez un nom et un prix valide.',
+      errorMessage: result.error.issues[0]?.message ?? 'Renseignez un nom et un prix valide.',
     };
   }
 
+  const formData = result.data;
+  const price = Number(formData.price.replace(',', '.'));
+
   return {
     input: {
-      name,
+      name: formData.name,
       price,
-      category: form.category,
-      image_url: form.imageUrl.trim() || null,
-      allergenIds: form.allergenIds,
+      category: formData.category as Category,
+      image_url: formData.imageUrl || null,
+      allergenIds: formData.allergenIds,
     },
     errorMessage: null,
   };

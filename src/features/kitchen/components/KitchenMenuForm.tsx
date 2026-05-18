@@ -1,19 +1,20 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Controller } from 'react-hook-form';
 import { Colors } from '../../../constants/colors';
 import { CATEGORY_LABELS } from '../../../constants/ui';
 import { CATEGORIES } from '../../../types';
 import type { Allergen, Category } from '../../../types';
+import type { Control, FieldErrors } from 'react-hook-form';
 import type { MenuFormState } from '../utils/menu-form';
 
 interface KitchenMenuFormProps {
   form: MenuFormState;
+  control: Control<MenuFormState>;
+  errors: FieldErrors<MenuFormState>;
   allergens: Allergen[];
   customAllergenName: string;
   saving: boolean;
-  onChangeName: (name: string) => void;
-  onChangePrice: (price: string) => void;
-  onChangeImageUrl: (imageUrl: string) => void;
   onChangeCategory: (category: Category) => void;
   onToggleAllergen: (allergenId: string) => void;
   onChangeCustomAllergenName: (name: string) => void;
@@ -24,12 +25,11 @@ interface KitchenMenuFormProps {
 
 export function KitchenMenuForm({
   form,
+  control,
+  errors,
   allergens,
   customAllergenName,
   saving,
-  onChangeName,
-  onChangePrice,
-  onChangeImageUrl,
   onChangeCategory,
   onToggleAllergen,
   onChangeCustomAllergenName,
@@ -40,28 +40,53 @@ export function KitchenMenuForm({
   return (
     <View style={styles.formCard}>
       <Text style={styles.formTitle}>{form.id ? 'Modifier un article' : 'Ajouter un article'}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Nom"
-        placeholderTextColor={Colors.kitchenTextSecondary}
-        value={form.name}
-        onChangeText={onChangeName}
+      <Controller
+        control={control}
+        name="name"
+        render={({ field: { onBlur, onChange, value } }) => (
+          <TextInput
+            style={[styles.input, errors.name && styles.inputError]}
+            placeholder="Nom"
+            placeholderTextColor={Colors.kitchenTextSecondary}
+            value={value}
+            onBlur={onBlur}
+            onChangeText={onChange}
+          />
+        )}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Prix"
-        placeholderTextColor={Colors.kitchenTextSecondary}
-        value={form.price}
-        onChangeText={onChangePrice}
-        keyboardType="decimal-pad"
+      {errors.name ? <Text style={styles.errorText}>{errors.name.message}</Text> : null}
+
+      <Controller
+        control={control}
+        name="price"
+        render={({ field: { onBlur, onChange, value } }) => (
+          <TextInput
+            style={[styles.input, errors.price && styles.inputError]}
+            placeholder="Prix"
+            placeholderTextColor={Colors.kitchenTextSecondary}
+            value={value}
+            onBlur={onBlur}
+            onChangeText={onChange}
+            keyboardType="decimal-pad"
+          />
+        )}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="URL de l'image"
-        placeholderTextColor={Colors.kitchenTextSecondary}
-        value={form.imageUrl}
-        onChangeText={onChangeImageUrl}
-        autoCapitalize="none"
+      {errors.price ? <Text style={styles.errorText}>{errors.price.message}</Text> : null}
+
+      <Controller
+        control={control}
+        name="imageUrl"
+        render={({ field: { onBlur, onChange, value } }) => (
+          <TextInput
+            style={styles.input}
+            placeholder="URL de l'image"
+            placeholderTextColor={Colors.kitchenTextSecondary}
+            value={value}
+            onBlur={onBlur}
+            onChangeText={onChange}
+            autoCapitalize="none"
+          />
+        )}
       />
 
       <View style={styles.chips}>
@@ -156,6 +181,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.kitchenBorder,
     marginBottom: 10,
+  },
+  inputError: {
+    borderColor: Colors.statusUnavailable,
+  },
+  errorText: {
+    color: Colors.statusUnavailable,
+    fontSize: 12,
+    marginTop: -6,
+    marginBottom: 8,
   },
   formLabel: {
     fontSize: 11,

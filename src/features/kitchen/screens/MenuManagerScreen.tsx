@@ -1,31 +1,49 @@
 import React, { useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import { Colors } from '../../../constants/colors';
 import { KitchenMessages } from '../../../constants/messages';
 import { KitchenAvailabilityMessage } from '../components/KitchenAvailabilityMessage';
 import { KitchenMenuForm } from '../components/KitchenMenuForm';
 import { KitchenMenuHeader } from '../components/KitchenMenuHeader';
 import { KitchenMenuList } from '../components/KitchenMenuList';
+import type { KitchenMenuListEntry } from '../components/KitchenMenuList';
 import { KitchenMenuSearch } from '../components/KitchenMenuSearch';
 import { useKitchenMenuItems } from '../hooks/useKitchenMenuItems';
-import { emptyMenuForm, parseMenuItemForm } from '../utils/menu-form';
+import { emptyMenuForm, menuItemFormSchema, parseMenuItemForm } from '../utils/menu-form';
 import type { MenuFormState } from '../utils/menu-form';
 import type { Category, MenuItem } from '../../../types';
 
 export default function MenuManagerScreen() {
-  const scrollRef = useRef<ScrollView>(null);
+  const listRef = useRef<FlatList<KitchenMenuListEntry>>(null);
   const [search, setSearch] = useState('');
-  const [form, setForm] = useState<MenuFormState>(emptyMenuForm);
   const [customAllergenName, setCustomAllergenName] = useState('');
   const [availabilityMessage, setAvailabilityMessage] = useState<string>(KitchenMessages.itemUnavailable);
   const [saving, setSaving] = useState(false);
+  const {
+    control,
+    formState: { errors },
+    getValues,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+  } = useForm<MenuFormState>({
+    resolver: zodResolver(menuItemFormSchema),
+    defaultValues: emptyMenuForm,
+    mode: 'onBlur',
+  });
+  const form = watch();
   const {
     allergens,
     filteredItems,
     itemsByCategory,
     categoryOrder,
+    loading,
+    error,
     toggleItemAvailability,
     saveMenuItem,
     addAllergen,
@@ -41,7 +59,7 @@ export default function MenuManagerScreen() {
   }
 
   function editItem(item: MenuItem) {
-    setForm({
+    reset({
       id: item.id,
       name: item.name,
       price: String(item.price),
@@ -49,24 +67,21 @@ export default function MenuManagerScreen() {
       imageUrl: item.image_url ?? '',
       allergenIds: item.allergens?.map((allergen) => allergen.id) ?? [],
     });
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
-  }
-
-  function updateForm(updates: Partial<MenuFormState>) {
-    setForm((current) => ({ ...current, ...updates }));
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
   }
 
   function toggleFormAllergen(allergenId: string) {
-    setForm((current) => ({
-      ...current,
-      allergenIds: current.allergenIds.includes(allergenId)
-        ? current.allergenIds.filter((id) => id !== allergenId)
-        : [...current.allergenIds, allergenId],
-    }));
+    const allergenIds = getValues('allergenIds');
+    const nextIds = allergenIds.includes(allergenId)
+      ? allergenIds.filter((id) => id !== allergenId)
+      : [...allergenIds, allergenId];
+
+    setValue('allergenIds', nextIds, { shouldDirty: true, shouldValidate: true });
   }
 
-  async function handleSaveMenuItem() {
-    const result = parseMenuItemForm(form);
+  async function handleSaveMenuItem(formData: MenuFormState) {
+    const currentId = formData.id;
+    const result = parseMenuItemForm(formData);
 
     if (!result.input) {
       Alert.alert('Formulaire incomplet', result.errorMessage ?? 'Renseignez un nom et un prix valide.');
@@ -75,14 +90,23 @@ export default function MenuManagerScreen() {
 
     setSaving(true);
     try {
-      await saveMenuItem(result.input, form.id);
-      setForm(emptyMenuForm);
+      await saveMenuItem(result.input, currentId);
+      reset(emptyMenuForm);
     } catch {
       Alert.alert('Erreur', "Impossible d'enregistrer cet article.");
     } finally {
       setSaving(false);
     }
   }
+
+  const submitMenuItem = handleSubmit(
+    (formData) => {
+      void handleSaveMenuItem(formData);
+    },
+    () => {
+      Alert.alert('Formulaire incomplet', 'Renseignez un nom et un prix valide.');
+    }
+  );
 
   async function handleAddAllergen() {
     const name = customAllergenName.trim();
@@ -93,7 +117,10 @@ export default function MenuManagerScreen() {
     try {
       const allergen = await addAllergen(name);
       setCustomAllergenName('');
-      setForm((current) => ({ ...current, allergenIds: [...current.allergenIds, allergen.id] }));
+      setValue('allergenIds', [...getValues('allergenIds'), allergen.id], {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
     } catch {
       Alert.alert('Erreur', "Impossible d'ajouter cet allergène.");
     }
@@ -110,39 +137,45 @@ export default function MenuManagerScreen() {
         onChangeSearch={setSearch}
       />
 
-      <ScrollView ref={scrollRef} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        <KitchenAvailabilityMessage value={availabilityMessage} onChange={setAvailabilityMessage} />
+      <KitchenMenuList
+        listRef={listRef}
+        categoryOrder={categoryOrder}
+        filteredItemCount={loading || error ? -1 : filteredItems.length}
+        itemsByCategory={itemsByCategory}
+        ListHeaderComponent={
+          <>
+            <KitchenAvailabilityMessage value={availabilityMessage} onChange={setAvailabilityMessage} />
 
-        <KitchenMenuForm
-          form={form}
-          allergens={allergens}
-          customAllergenName={customAllergenName}
-          saving={saving}
-          onChangeName={(name) => updateForm({ name })}
-          onChangePrice={(price) => updateForm({ price })}
-          onChangeImageUrl={(imageUrl) => updateForm({ imageUrl })}
-          onChangeCategory={(category: Category) => updateForm({ category })}
-          onToggleAllergen={toggleFormAllergen}
-          onChangeCustomAllergenName={setCustomAllergenName}
-          onAddAllergen={() => {
-            void handleAddAllergen();
-          }}
-          onCancel={() => setForm(emptyMenuForm)}
-          onSave={() => {
-            void handleSaveMenuItem();
-          }}
-        />
+            <KitchenMenuForm
+              form={form}
+              control={control}
+              errors={errors}
+              allergens={allergens}
+              customAllergenName={customAllergenName}
+              saving={saving}
+              onChangeCategory={(category: Category) =>
+                setValue('category', category, { shouldDirty: true, shouldValidate: true })
+              }
+              onToggleAllergen={toggleFormAllergen}
+              onChangeCustomAllergenName={setCustomAllergenName}
+              onAddAllergen={() => {
+                void handleAddAllergen();
+              }}
+              onCancel={() => reset(emptyMenuForm)}
+              onSave={() => {
+                void submitMenuItem();
+              }}
+            />
 
-        <KitchenMenuList
-          categoryOrder={categoryOrder}
-          filteredItemCount={filteredItems.length}
-          itemsByCategory={itemsByCategory}
-          onToggleItem={(item) => {
-            void handleToggleItem(item);
-          }}
-          onEditItem={editItem}
-        />
-      </ScrollView>
+            {loading ? <ActivityIndicator color={Colors.primary} style={styles.loader} /> : null}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          </>
+        }
+        onToggleItem={(item) => {
+          void handleToggleItem(item);
+        }}
+        onEditItem={editItem}
+      />
     </SafeAreaView>
   );
 }
@@ -153,7 +186,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.kitchenBackground,
     paddingHorizontal: 16,
   },
-  list: {
-    paddingBottom: 24,
+  loader: {
+    marginVertical: 18,
+  },
+  errorText: {
+    color: Colors.statusUnavailable,
+    textAlign: 'center',
+    marginVertical: 18,
   },
 });

@@ -3,34 +3,37 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Colors } from '../../../constants/colors';
+
+const loginSchema = z.object({
+  email: z.string().trim().email('Saisissez une adresse e-mail valide.'),
+  password: z.string().trim().min(6, 'Le mot de passe doit contenir au moins 6 caractères.'),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+    mode: 'onBlur',
+  });
 
-  async function onSubmit() {
-    const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
-    const nextEmailError = trimmedEmail.includes('@') ? '' : "Saisissez une adresse e-mail valide.";
-    const nextPasswordError = trimmedPassword.length >= 6 ? '' : 'Le mot de passe doit contenir au moins 6 caractères.';
-
-    setEmailError(nextEmailError);
-    setPasswordError(nextPasswordError);
-
-    if (nextEmailError || nextPasswordError) {
-      return;
-    }
-
+  async function onSubmit(data: LoginFormData) {
     setLoading(true);
     try {
-      await login(trimmedEmail, trimmedPassword);
+      await login(data.email, data.password);
     } catch {
       Alert.alert('Connexion impossible', 'Identifiants invalides.');
     } finally {
@@ -49,33 +52,47 @@ export default function LoginScreen() {
 
       <View style={styles.form}>
         <Text style={styles.label}>E-mail</Text>
-        <TextInput
-          style={[styles.input, emailError && styles.inputError]}
-          placeholder="staff@restome.com"
-          placeholderTextColor={Colors.kitchenTextSecondary}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          autoCorrect={false}
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <TextInput
+              style={[styles.input, errors.email && styles.inputError]}
+              placeholder="staff@restome.com"
+              placeholderTextColor={Colors.kitchenTextSecondary}
+              value={value}
+              onBlur={onBlur}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoCorrect={false}
+            />
+          )}
         />
-        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+        {errors.email ? <Text style={styles.errorText}>{errors.email.message}</Text> : null}
 
         <Text style={styles.label}>Mot de passe</Text>
-        <TextInput
-          style={[styles.input, passwordError && styles.inputError]}
-          placeholder="••••••••"
-          placeholderTextColor={Colors.kitchenTextSecondary}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <TextInput
+              style={[styles.input, errors.password && styles.inputError]}
+              placeholder="••••••••"
+              placeholderTextColor={Colors.kitchenTextSecondary}
+              value={value}
+              onBlur={onBlur}
+              onChangeText={onChange}
+              secureTextEntry
+            />
+          )}
         />
-        {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+        {errors.password ? <Text style={styles.errorText}>{errors.password.message}</Text> : null}
 
         <Pressable
           style={({ pressed }) => [styles.button, pressed && styles.pressed, loading && styles.disabled]}
           onPress={() => {
-            void onSubmit();
+            void handleSubmit(onSubmit)();
           }}
           disabled={loading}
         >
