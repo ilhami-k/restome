@@ -13,6 +13,12 @@
           "cameraPermission": "Allow RestoMe to access your camera to scan table QR codes."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow RestoMe to access your photos so kitchen staff can choose menu item images."
+        }
+      ],
       "expo-router",
       "expo-secure-store",
       "expo-sqlite"

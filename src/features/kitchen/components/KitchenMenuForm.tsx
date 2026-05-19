@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Controller } from 'react-hook-form';
 import { Colors } from '../../../constants/colors';
 import { CATEGORY_LABELS } from '../../../constants/ui';
@@ -14,11 +14,14 @@ interface KitchenMenuFormProps {
   errors: FieldErrors<MenuFormState>;
   allergens: Allergen[];
   customAllergenName: string;
+  imageUploading: boolean;
   saving: boolean;
   onChangeCategory: (category: Category) => void;
   onToggleAllergen: (allergenId: string) => void;
   onChangeCustomAllergenName: (name: string) => void;
   onAddAllergen: () => void;
+  onPickImage: () => void;
+  onRemoveImage: () => void;
   onCancel: () => void;
   onSave: () => void;
 }
@@ -29,14 +32,19 @@ export function KitchenMenuForm({
   errors,
   allergens,
   customAllergenName,
+  imageUploading,
   saving,
   onChangeCategory,
   onToggleAllergen,
   onChangeCustomAllergenName,
   onAddAllergen,
+  onPickImage,
+  onRemoveImage,
   onCancel,
   onSave,
 }: KitchenMenuFormProps) {
+  const imageButtonText = form.imageUrl ? "Changer l'image" : 'Choisir une image';
+
   return (
     <View style={styles.formCard}>
       <Text style={styles.formTitle}>{form.id ? 'Modifier un article' : 'Ajouter un article'}</Text>
@@ -76,16 +84,39 @@ export function KitchenMenuForm({
       <Controller
         control={control}
         name="imageUrl"
-        render={({ field: { onBlur, onChange, value } }) => (
-          <TextInput
-            style={styles.input}
-            placeholder="URL de l'image"
-            placeholderTextColor={Colors.kitchenTextSecondary}
-            value={value}
-            onBlur={onBlur}
-            onChangeText={onChange}
-            autoCapitalize="none"
-          />
+        render={({ field: { value } }) => (
+          <View style={styles.imageField}>
+            {value ? <Image source={{ uri: value }} style={styles.imagePreview} /> : null}
+            <View style={styles.imageActions}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.smallButton,
+                  styles.imageButton,
+                  pressed && styles.pressed,
+                  (saving || imageUploading) && styles.disabled,
+                ]}
+                onPress={onPickImage}
+                disabled={saving || imageUploading}
+              >
+                <Text style={styles.smallButtonText}>
+                  {imageUploading ? 'Envoi...' : imageButtonText}
+                </Text>
+              </Pressable>
+              {value ? (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.secondarySmallButton,
+                    pressed && styles.pressed,
+                    (saving || imageUploading) && styles.disabled,
+                  ]}
+                  onPress={onRemoveImage}
+                  disabled={saving || imageUploading}
+                >
+                  <Text style={styles.secondaryButtonText}>Retirer</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
         )}
       />
 
@@ -147,11 +178,17 @@ export function KitchenMenuForm({
           </Pressable>
         ) : null}
         <Pressable
-          style={({ pressed }) => [styles.saveButton, pressed && styles.pressed, saving && styles.disabled]}
+          style={({ pressed }) => [
+            styles.saveButton,
+            pressed && styles.pressed,
+            (saving || imageUploading) && styles.disabled,
+          ]}
           onPress={onSave}
-          disabled={saving}
+          disabled={saving || imageUploading}
         >
-          <Text style={styles.saveButtonText}>{saving ? 'Enregistrement...' : 'Enregistrer'}</Text>
+          <Text style={styles.saveButtonText}>
+            {saving ? 'Enregistrement...' : 'Enregistrer'}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -231,8 +268,35 @@ const styles = StyleSheet.create({
   inlineInput: {
     flex: 1,
   },
+  imageField: {
+    marginBottom: 10,
+  },
+  imagePreview: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    borderRadius: 10,
+    marginBottom: 8,
+    backgroundColor: Colors.kitchenBackground,
+  },
+  imageActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  imageButton: {
+    flex: 1,
+    alignItems: 'center',
+  },
   smallButton: {
     backgroundColor: Colors.kitchenBackground,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: Colors.kitchenBorder,
+    marginBottom: 10,
+  },
+  secondarySmallButton: {
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,

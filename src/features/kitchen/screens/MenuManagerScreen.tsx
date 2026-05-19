@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import * as ImagePicker from 'expo-image-picker';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Colors } from '../../../constants/colors';
@@ -14,6 +15,7 @@ import type { KitchenMenuListEntry } from '../components/KitchenMenuList';
 import { KitchenMenuSearch } from '../components/KitchenMenuSearch';
 import { useKitchenMenuItems } from '../hooks/useKitchenMenuItems';
 import { emptyMenuForm, menuItemFormSchema, parseMenuItemForm } from '../utils/menu-form';
+import { uploadMenuItemImage } from '../../../services/menu.service';
 import type { MenuFormState } from '../utils/menu-form';
 import type { Category, MenuItem } from '../../../types';
 
@@ -22,6 +24,7 @@ export default function MenuManagerScreen() {
   const [search, setSearch] = useState('');
   const [customAllergenName, setCustomAllergenName] = useState('');
   const [availabilityMessage, setAvailabilityMessage] = useState<string>(KitchenMessages.itemUnavailable);
+  const [imageUploading, setImageUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const {
     control,
@@ -126,6 +129,46 @@ export default function MenuManagerScreen() {
     }
   }
 
+  async function handlePickMenuImage() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Autorisation requise', "Autorisez l'accès aux photos pour choisir une image.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.85,
+      base64: true,
+    });
+
+    if (result.canceled) {
+      return;
+    }
+
+    const image = result.assets[0];
+    if (!image?.base64) {
+      Alert.alert('Erreur', "Impossible de lire l'image sélectionnée.");
+      return;
+    }
+
+    setImageUploading(true);
+    try {
+      const imageUrl = await uploadMenuItemImage({
+        base64: image.base64,
+        fileName: image.fileName,
+        mimeType: image.mimeType,
+      });
+      setValue('imageUrl', imageUrl, { shouldDirty: true, shouldValidate: true });
+    } catch {
+      Alert.alert('Erreur', "Impossible d'envoyer cette image.");
+    } finally {
+      setImageUploading(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="light" />
@@ -152,6 +195,7 @@ export default function MenuManagerScreen() {
               errors={errors}
               allergens={allergens}
               customAllergenName={customAllergenName}
+              imageUploading={imageUploading}
               saving={saving}
               onChangeCategory={(category: Category) =>
                 setValue('category', category, { shouldDirty: true, shouldValidate: true })
@@ -161,6 +205,10 @@ export default function MenuManagerScreen() {
               onAddAllergen={() => {
                 void handleAddAllergen();
               }}
+              onPickImage={() => {
+                void handlePickMenuImage();
+              }}
+              onRemoveImage={() => setValue('imageUrl', '', { shouldDirty: true, shouldValidate: true })}
               onCancel={() => reset(emptyMenuForm)}
               onSave={() => {
                 void submitMenuItem();

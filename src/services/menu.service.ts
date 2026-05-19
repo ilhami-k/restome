@@ -1,3 +1,4 @@
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '../lib/supabase';
 import type { Allergen, Category, MenuItem } from '../types';
 
@@ -11,6 +12,12 @@ export interface MenuItemInput {
   category: Category;
   image_url: string | null;
   allergenIds: string[];
+}
+
+export interface MenuImageUpload {
+  base64: string;
+  fileName: string | null | undefined;
+  mimeType: string | null | undefined;
 }
 
 function mapMenuRow(row: MenuRow): MenuItem {
@@ -155,6 +162,43 @@ export async function createAllergen(name: string): Promise<Allergen> {
   }
 
   return data as Allergen;
+}
+
+export async function uploadMenuItemImage(image: MenuImageUpload): Promise<string> {
+  const contentType = image.mimeType ?? 'image/jpeg';
+  const extension = getImageExtension(image.fileName, contentType);
+  const fileName = `${Date.now()}-${Math.random().toString(16).slice(2)}.${extension}`;
+  const path = `menu-items/${fileName}`;
+
+  const { error } = await supabase.storage
+    .from('menu-images')
+    .upload(path, decode(image.base64), {
+      contentType,
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  const { data } = supabase.storage.from('menu-images').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+function getImageExtension(fileName: string | null | undefined, mimeType: string): string {
+  const nameExtension = fileName?.split('.').pop()?.toLowerCase();
+  if (nameExtension && ['jpg', 'jpeg', 'png', 'webp'].includes(nameExtension)) {
+    return nameExtension === 'jpg' ? 'jpeg' : nameExtension;
+  }
+
+  if (mimeType === 'image/png') {
+    return 'png';
+  }
+
+  if (mimeType === 'image/webp') {
+    return 'webp';
+  }
+
+  return 'jpeg';
 }
 
 export function subscribeToMenuAvailability(
