@@ -4,11 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '../../../constants/colors';
-import { KitchenMessages } from '../../../constants/messages';
+import { Messages } from '../../../constants/messages';
 import { KITCHEN_STATUS_FILTERS } from '../../../constants/ui';
+import { KitchenHeader } from '../components/KitchenHeader';
 import { OrderCard } from '../components/OrderCard';
 import { useKitchenOrders } from '../hooks/useKitchenOrders';
 import { useKitchenSessions } from '../hooks/useKitchenSessions';
+import { confirmMarkUnavailable } from '../utils/order-actions';
 import type { ItemStatus } from '../../../types';
 
 export default function KitchenTableOrderScreen() {
@@ -21,23 +23,11 @@ export default function KitchenTableOrderScreen() {
   const { closeOpenSession } = useKitchenSessions();
   const title = tableNumber ? `Table ${tableNumber}` : 'Table';
 
-  function markUnavailable(itemId: string) {
-    Alert.alert('Marquer indisponible', "Notifier le client que l'article n'est pas disponible ?", [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Confirmer',
-        onPress: () => {
-          void setItemStatus(itemId, 'unavailable', KitchenMessages.itemUnavailable);
-        },
-      },
-    ]);
-  }
-
   function confirmCloseSession() {
-    Alert.alert('Fermer la session', `Fermer la session de la ${title.toLowerCase()} ?`, [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(Messages.kitchen.closeSessionTitle, Messages.kitchen.closeSessionQuestion(`la ${title.toLowerCase()}`), [
+      { text: Messages.common.cancel, style: 'cancel' },
       {
-        text: 'Fermer',
+        text: Messages.common.close,
         style: 'destructive',
         onPress: () => {
           void closeSessionAndReturn();
@@ -56,7 +46,7 @@ export default function KitchenTableOrderScreen() {
       await closeOpenSession(currentSessionId);
       router.replace('/(kitchen)/dashboard');
     } catch {
-      Alert.alert('Erreur', 'Impossible de fermer cette session.');
+      Alert.alert(Messages.common.error, Messages.kitchen.closeSessionError);
     } finally {
       setClosing(false);
     }
@@ -66,22 +56,18 @@ export default function KitchenTableOrderScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="light" />
 
-      <View style={styles.header}>
-        <Pressable style={({ pressed }) => pressed && styles.pressed} onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.back}>Retour</Text>
-        </Pressable>
-        <View style={styles.titleRow}>
-          <View style={styles.activeDot} />
-          <Text style={styles.headerTitle}>{title}</Text>
-        </View>
-        <Pressable
-          style={({ pressed }) => [styles.closeSessionButton, pressed && styles.pressed]}
-          onPress={confirmCloseSession}
-          disabled={closing}
-        >
-          <Text style={styles.closeSessionText}>{closing ? 'Fermeture...' : 'Fermer'}</Text>
-        </Pressable>
-      </View>
+      <KitchenHeader
+        title={title}
+        style={styles.header}
+        leading={
+          <Pressable style={({ pressed }) => pressed && styles.pressed} onPress={() => router.back()} hitSlop={8}>
+            <Text style={styles.back}>Retour</Text>
+          </Pressable>
+        }
+        closeLabel={closing ? Messages.kitchen.closeSessionClosing : Messages.common.close}
+        onClose={confirmCloseSession}
+        closeDisabled={closing}
+      />
 
       <View style={styles.pills}>
         {KITCHEN_STATUS_FILTERS.map((filterOption) => (
@@ -118,13 +104,13 @@ export default function KitchenTableOrderScreen() {
             onUpdateStatus={(itemId, status) => {
               void setItemStatus(itemId, status);
             }}
-            onMarkUnavailable={markUnavailable}
+            onMarkUnavailable={(itemId) => confirmMarkUnavailable(setItemStatus, itemId)}
             onSendMessage={(itemId, message) => {
               void sendItemMessage(itemId, message);
             }}
           />
         )}
-        ListEmptyComponent={!loading && !error ? <Text style={styles.empty}>Aucune commande active</Text> : null}
+        ListEmptyComponent={!loading && !error ? <Text style={styles.empty}>{Messages.kitchen.noActiveOrders}</Text> : null}
       />
     </SafeAreaView>
   );
@@ -144,34 +130,6 @@ const styles = StyleSheet.create({
   back: {
     color: Colors.kitchenTextSecondary,
     fontSize: 13,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  activeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.statusReady,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.white,
-  },
-  closeSessionButton: {
-    alignSelf: 'flex-start',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    backgroundColor: Colors.statusUnavailable + '20',
-  },
-  closeSessionText: {
-    color: Colors.statusUnavailable,
-    fontSize: 12,
-    fontWeight: '700',
   },
   pills: {
     flexDirection: 'row',

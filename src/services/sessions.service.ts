@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { createChannelName } from '../lib/realtime';
 import type { Session } from '../types';
 import { closeOpenOrderBySessionId } from './orders.service';
 
@@ -137,8 +138,4 @@ export function subscribeToSessionJoins(onJoin: (notification: SessionJoinNotifi
   return () => {
     void supabase.removeChannel(channel);
   };
-}
-
-function createChannelName(name: string): string {
-  return `${name}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
 }

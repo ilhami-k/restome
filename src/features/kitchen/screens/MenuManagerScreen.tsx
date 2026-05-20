@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Colors } from '../../../constants/colors';
-import { KitchenMessages } from '../../../constants/messages';
+import { KitchenMessages, Messages } from '../../../constants/messages';
 import { KitchenAvailabilityMessage } from '../components/KitchenAvailabilityMessage';
 import { KitchenMenuForm } from '../components/KitchenMenuForm';
 import { KitchenMenuHeader } from '../components/KitchenMenuHeader';
@@ -57,7 +57,7 @@ export default function MenuManagerScreen() {
       const message = item.available ? availabilityMessage.trim() || KitchenMessages.itemUnavailable : null;
       await toggleItemAvailability(item, message);
     } catch {
-      Alert.alert('Erreur', "Impossible de mettre à jour la disponibilité.");
+      Alert.alert(Messages.common.error, KitchenMessages.availabilityUpdateError);
     }
   }
 
@@ -87,7 +87,7 @@ export default function MenuManagerScreen() {
     const result = parseMenuItemForm(formData);
 
     if (!result.input) {
-      Alert.alert('Formulaire incomplet', result.errorMessage ?? 'Renseignez un nom et un prix valide.');
+      Alert.alert(KitchenMessages.incompleteFormTitle, result.errorMessage ?? KitchenMessages.incompleteFormMessage);
       return;
     }
 
@@ -96,7 +96,7 @@ export default function MenuManagerScreen() {
       await saveMenuItem(result.input, currentId);
       reset(emptyMenuForm);
     } catch {
-      Alert.alert('Erreur', "Impossible d'enregistrer cet article.");
+      Alert.alert(Messages.common.error, KitchenMessages.saveMenuItemError);
     } finally {
       setSaving(false);
     }
@@ -107,7 +107,7 @@ export default function MenuManagerScreen() {
       void handleSaveMenuItem(formData);
     },
     () => {
-      Alert.alert('Formulaire incomplet', 'Renseignez un nom et un prix valide.');
+      Alert.alert(KitchenMessages.incompleteFormTitle, KitchenMessages.incompleteFormMessage);
     }
   );
 
@@ -125,14 +125,14 @@ export default function MenuManagerScreen() {
         shouldValidate: true,
       });
     } catch {
-      Alert.alert('Erreur', "Impossible d'ajouter cet allergène.");
+      Alert.alert(Messages.common.error, KitchenMessages.addAllergenError);
     }
   }
 
   async function handlePickMenuImage() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Autorisation requise', "Autorisez l'accès aux photos pour choisir une image.");
+      Alert.alert(KitchenMessages.photoPermissionTitle, KitchenMessages.photoPermissionMessage);
       return;
     }
 
@@ -150,7 +150,7 @@ export default function MenuManagerScreen() {
 
     const image = result.assets[0];
     if (!image?.base64) {
-      Alert.alert('Erreur', "Impossible de lire l'image sélectionnée.");
+      Alert.alert(Messages.common.error, KitchenMessages.readImageError);
       return;
     }
 
@@ -163,7 +163,7 @@ export default function MenuManagerScreen() {
       });
       setValue('imageUrl', imageUrl, { shouldDirty: true, shouldValidate: true });
     } catch {
-      Alert.alert('Erreur', "Impossible d'envoyer cette image.");
+      Alert.alert(Messages.common.error, KitchenMessages.uploadImageError);
     } finally {
       setImageUploading(false);
     }

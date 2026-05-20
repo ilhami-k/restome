@@ -16,6 +16,7 @@ import { useCart } from '../../../contexts/CartContext';
 import { useSession } from '../../../contexts/SessionContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { Colors, getCustomerColors } from '../../../constants/colors';
+import { Messages } from '../../../constants/messages';
 import { formatPrice } from '../../../constants/ui';
 import { useSubmitOrder } from '../hooks/useSubmitOrder';
 
@@ -29,7 +30,7 @@ export default function OrderSummaryScreen() {
 
   async function placeOrder() {
     if (!session) {
-      Alert.alert('Aucune session', "Scannez d'abord le QR code de votre table.");
+      Alert.alert(Messages.customer.noSessionTitle, Messages.customer.noSessionMessage);
       return;
     }
 
@@ -42,7 +43,7 @@ export default function OrderSummaryScreen() {
       clearCart();
       router.push('/live-order');
     } catch {
-      Alert.alert('Commande impossible', "Une erreur est survenue lors de l'envoi de votre commande.");
+      Alert.alert(Messages.customer.orderSubmitErrorTitle, Messages.customer.orderSubmitErrorMessage);
     }
   }
 

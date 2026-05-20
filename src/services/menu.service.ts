@@ -1,5 +1,7 @@
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../lib/supabase';
+import { randomId } from '../lib/ids';
+import { createChannelName } from '../lib/realtime';
 import type { Allergen, Category, MenuItem } from '../types';
 
 type MenuRow = Omit<MenuItem, 'allergens'> & {
@@ -167,7 +169,7 @@ export async function createAllergen(name: string): Promise<Allergen> {
 export async function uploadMenuItemImage(image: MenuImageUpload): Promise<string> {
   const contentType = image.mimeType ?? 'image/jpeg';
   const extension = getImageExtension(image.fileName, contentType);
-  const fileName = `${Date.now()}-${Math.random().toString(16).slice(2)}.${extension}`;
+  const fileName = `${randomId()}.${extension}`;
   const path = `menu-items/${fileName}`;
 
   const { error } = await supabase.storage
@@ -227,8 +229,4 @@ export function subscribeToMenuAvailability(
   return () => {
     void supabase.removeChannel(channel);
   };
-}
-
-function createChannelName(name: string): string {
-  return `${name}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
 }

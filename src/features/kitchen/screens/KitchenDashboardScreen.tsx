@@ -5,11 +5,14 @@ import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Colors } from '../../../constants/colors';
-import { KitchenMessages } from '../../../constants/messages';
+import { Messages } from '../../../constants/messages';
+import { formatTime } from '../../../constants/ui';
+import { KitchenHeader, kitchenHeaderStyles } from '../components/KitchenHeader';
 import { OrderCard } from '../components/OrderCard';
 import { useKitchenOrders } from '../hooks/useKitchenOrders';
 import { useKitchenSessions } from '../hooks/useKitchenSessions';
 import { subscribeToSessionJoins } from '../../../services/sessions.service';
+import { confirmMarkUnavailable } from '../utils/order-actions';
 import type { GroupedKitchenOrder } from '../hooks/useKitchenOrders';
 import type { Session } from '../../../types';
 
@@ -49,7 +52,7 @@ export default function KitchenDashboardScreen() {
   React.useEffect(() => {
     return subscribeToSessionJoins((notification) => {
       if (notification.type === 'opened') {
-        Alert.alert('Table ouverte', `La table ${notification.tableNumber} a ouvert une session.`);
+        Alert.alert(Messages.kitchen.tableOpenedTitle, Messages.kitchen.tableOpened(notification.tableNumber));
       }
       void refreshSessions();
     });
@@ -60,18 +63,18 @@ export default function KitchenDashboardScreen() {
       await closeOpenSession(sessionId);
       await refreshOrders();
     } catch {
-      Alert.alert('Erreur', 'Impossible de fermer cette session.');
+      Alert.alert(Messages.common.error, Messages.kitchen.closeSessionError);
     }
   }
 
   function confirmCloseSession(sessionId: string, tableNumber?: number) {
     Alert.alert(
-      'Fermer la session',
-      `Fermer la session${tableNumber ? ` de la table ${tableNumber}` : ''} ?`,
+      Messages.kitchen.closeSessionTitle,
+      Messages.kitchen.closeSessionQuestion(tableNumber ? `la table ${tableNumber}` : ''),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: Messages.common.cancel, style: 'cancel' },
         {
-          text: 'Fermer',
+          text: Messages.common.close,
           style: 'destructive',
           onPress: () => {
             void closeSessionAndRefresh(sessionId);
@@ -81,20 +84,8 @@ export default function KitchenDashboardScreen() {
     );
   }
 
-  function markUnavailable(itemId: string) {
-    Alert.alert('Marquer indisponible', "Notifier le client que l'article n'est pas disponible ?", [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Confirmer',
-        onPress: () => {
-          void setItemStatus(itemId, 'unavailable', KitchenMessages.itemUnavailable);
-        },
-      },
-    ]);
-  }
-
   const entries: DashboardEntry[] = [
-    { id: 'sessions-title', type: 'section', title: 'TABLES ACTIVES' },
+    { id: 'sessions-title', type: 'section', title: Messages.kitchen.activeTablesTitle },
     ...(sessions.length > 0
       ? sessions.map((session) => {
           const group = groupedOrders.find((entry) => entry.sessionId === session.id);
@@ -105,15 +96,15 @@ export default function KitchenDashboardScreen() {
             itemCount: group?.items.length ?? 0,
           };
         })
-      : [{ id: 'sessions-empty', type: 'empty' as const, text: 'Aucune session ouverte' }]),
-    { id: 'orders-title', type: 'section', title: 'FILE EN DIRECT' },
+      : [{ id: 'sessions-empty', type: 'empty' as const, text: Messages.kitchen.noOpenSession }]),
+    { id: 'orders-title', type: 'section', title: Messages.kitchen.liveQueueTitle },
     ...(groupedOrders.length > 0
       ? groupedOrders.map((group) => ({
           id: `order-${group.sessionId}-${group.orderId}`,
           type: 'order' as const,
           group,
         }))
-      : [{ id: 'orders-empty', type: 'empty' as const, text: 'Aucune commande active' }]),
+      : [{ id: 'orders-empty', type: 'empty' as const, text: Messages.kitchen.noActiveOrders }]),
   ];
 
   return (
@@ -127,25 +118,22 @@ export default function KitchenDashboardScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.header}>
-            <View style={styles.headerTop}>
-              <View style={styles.titleBlock}>
-                <View style={styles.titleRow}>
-                  <Text style={styles.headerTitle}>Commandes</Text>
-                  <View style={styles.liveDot} />
-                </View>
-              </View>
-              <Pressable
-                style={({ pressed }) => pressed && styles.pressed}
-                onPress={() => {
-                  void logout().then(() => {
-                    router.replace('/');
-                  });
-                }}
-                hitSlop={8}
-              >
-                <Text style={styles.logout}>Déconnexion</Text>
-              </Pressable>
-            </View>
+            <KitchenHeader
+              title={Messages.kitchen.ordersTitle}
+              trailing={
+                <Pressable
+                  style={({ pressed }) => pressed && styles.pressed}
+                  onPress={() => {
+                    void logout().then(() => {
+                      router.replace('/');
+                    });
+                  }}
+                  hitSlop={8}
+                >
+                  <Text style={styles.logout}>{Messages.kitchen.logout}</Text>
+                </Pressable>
+              }
+            />
 
             <View style={styles.stats}>
               <View style={styles.statBox}>
@@ -163,8 +151,8 @@ export default function KitchenDashboardScreen() {
             </View>
 
             {ordersLoading || sessionsLoading ? <ActivityIndicator color={Colors.primary} style={styles.loader} /> : null}
-            {ordersError ? <Text style={styles.errorText}>{ordersError}</Text> : null}
-            {sessionsError ? <Text style={styles.errorText}>{sessionsError}</Text> : null}
+            {ordersError ? <Text style={kitchenHeaderStyles.errorText}>{ordersError}</Text> : null}
+            {sessionsError ? <Text style={kitchenHeaderStyles.errorText}>{sessionsError}</Text> : null}
           </View>
         }
         renderItem={({ item: entry }) => {
@@ -183,7 +171,7 @@ export default function KitchenDashboardScreen() {
                 onUpdateStatus={(itemId, status) => {
                   void setItemStatus(itemId, status);
                 }}
-                onMarkUnavailable={markUnavailable}
+                onMarkUnavailable={(itemId) => confirmMarkUnavailable(setItemStatus, itemId)}
                 onSendMessage={(itemId, message) => {
                   void sendItemMessage(itemId, message);
                 }}
@@ -212,17 +200,17 @@ export default function KitchenDashboardScreen() {
                   </View>
                   <Text style={styles.sessionMeta}>
                     {itemCount} article{itemCount > 1 ? 's' : ''} actif{itemCount > 1 ? 's' : ''} · ouverte à{' '}
-                    {new Date(session.created_at).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
+                    {formatTime(session.created_at)}
                   </Text>
                 </View>
                 <Pressable
-                  style={({ pressed }) => [styles.closeSessionButton, pressed && styles.pressed]}
+                  style={({ pressed }) => [styles.sessionCloseButton, pressed && styles.pressed]}
                   onPress={(event) => {
                     event.stopPropagation();
                     confirmCloseSession(session.id, session.table?.number);
                   }}
                 >
-                  <Text style={styles.closeSessionText}>Fermer</Text>
+                  <Text style={styles.sessionCloseText}>{Messages.common.close}</Text>
                 </Pressable>
               </Pressable>
           );
@@ -240,32 +228,6 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 8,
     paddingBottom: 12,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  titleBlock: {
-    flex: 1,
-    minWidth: 0,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.white,
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.statusReady,
   },
   logout: {
     fontSize: 13,
@@ -297,12 +259,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 14,
-  },
-  errorText: {
-    color: Colors.statusUnavailable,
-    fontSize: 13,
-    marginTop: 10,
-    textAlign: 'center',
   },
   list: {
     paddingHorizontal: 16,
@@ -349,13 +305,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
-  closeSessionButton: {
+  sessionCloseButton: {
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 7,
-    backgroundColor: Colors.statusUnavailable + '20',
+    backgroundColor: Colors.statusUnavailableSoft,
   },
-  closeSessionText: {
+  sessionCloseText: {
     color: Colors.statusUnavailable,
     fontSize: 12,
     fontWeight: '700',

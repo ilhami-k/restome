@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors } from '../../../constants/colors';
+import { formatTime } from '../../../constants/ui';
 import { StatusBadge } from './StatusBadge';
 import type { GroupedKitchenOrder } from '../hooks/useKitchenOrders';
 import type { ItemStatus } from '../../../types';
@@ -32,10 +33,7 @@ export function OrderCard({ group, onUpdateStatus, onMarkUnavailable, onSendMess
           <Text style={styles.tableBadgeText}>{group.tableNumber}</Text>
         </View>
         <Text style={styles.cardTime}>
-          {new Date(group.createdAt).toLocaleTimeString('fr-FR', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {formatTime(group.createdAt)}
         </Text>
         <Text style={styles.cardCount}>
           {group.items.length} article{group.items.length > 1 ? 's' : ''}

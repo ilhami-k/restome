@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { createChannelName } from '../lib/realtime';
 import { ACTIVE_ITEM_STATUSES } from '../types';
 import type { ItemStatus, Order, OrderItem, StatusUpdate } from '../types';
 
@@ -225,8 +226,4 @@ export function subscribeToStatusUpdates(
 
 function isUniqueViolation(error: { code?: string }): boolean {
   return error.code === '23505';
-}
-
-function createChannelName(name: string): string {
-  return `${name}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
 }

@@ -18,10 +18,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useSession } from '../../../contexts/SessionContext';
 import { Colors } from '../../../constants/colors';
+import { AppConfig } from '../../../constants/config';
+import { Messages } from '../../../constants/messages';
 import { useTableSession } from '../hooks/useTableSession';
 import { notifySessionJoined, notifySessionOpened } from '../../../services/sessions.service';
-
-const KITCHEN_QR_CODE = 'KITCHEN_001';
 
 export default function QRScanScreen() {
   const router = useRouter();
@@ -45,11 +45,11 @@ export default function QRScanScreen() {
       const trimmedCode = qrCode.trim();
 
       if (!trimmedCode) {
-        Alert.alert('Code manquant', 'Saisissez un QR code de table valide.');
+        Alert.alert(Messages.customer.missingQrTitle, Messages.customer.missingQrMessage);
         return;
       }
 
-      if (trimmedCode === KITCHEN_QR_CODE) {
+      if (trimmedCode === AppConfig.kitchenQrCode) {
         router.replace('/(kitchen)/login');
         return;
       }
@@ -59,12 +59,12 @@ export default function QRScanScreen() {
 
         if (result.joinedExisting) {
           Alert.alert(
-            'Rejoindre la session ?',
-            `La table ${result.table.number} a déjà une session en cours. Voulez-vous la rejoindre ?`,
+            Messages.customer.joinSessionTitle,
+            Messages.customer.joinSessionMessage(result.table.number),
             [
-              { text: 'Annuler', style: 'cancel' },
+              { text: Messages.common.cancel, style: 'cancel' },
               {
-                text: 'Rejoindre',
+                text: Messages.customer.joinSessionButton,
                 onPress: () => {
                   setSessionData(result.session, result.table);
                   void notifySessionJoined(result.session.id, result.table.number);
@@ -81,11 +81,11 @@ export default function QRScanScreen() {
         goToMenu();
       } catch (error: unknown) {
         if (error instanceof Error && error.message === 'TABLE_NOT_FOUND') {
-          Alert.alert('QR code invalide', "Aucune table ne correspond à ce code.");
+          Alert.alert(Messages.customer.invalidQrTitle, Messages.customer.invalidQrMessage);
           return;
         }
 
-        Alert.alert('Erreur', "Impossible de démarrer une session pour cette table.");
+        Alert.alert(Messages.common.error, Messages.customer.startSessionError);
       }
     },
     [goToMenu, resolveSession, router, setSessionData]
@@ -122,7 +122,7 @@ export default function QRScanScreen() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
             <Text style={styles.brand}>RestoMe</Text>
-            <Text style={styles.tagline}>EXPÉRIENCE À TABLE</Text>
+            <Text style={styles.tagline}>{Messages.customer.qrTagline}</Text>
           </View>
 
           <View style={[styles.scannerContainer, { width: scannerSize, height: scannerSize }]}>
@@ -145,7 +145,7 @@ export default function QRScanScreen() {
             )}
           </View>
 
-          <Text style={styles.hint}>Scannez le QR code de votre table</Text>
+          <Text style={styles.hint}>{Messages.customer.qrScanHint}</Text>
 
           <Pressable
             style={({ pressed }) => [
@@ -159,7 +159,7 @@ export default function QRScanScreen() {
             {loading ? (
               <ActivityIndicator color={Colors.white} />
             ) : (
-              <Text style={styles.primaryButtonText}>Scanner un QR code</Text>
+              <Text style={styles.primaryButtonText}>{Messages.customer.qrScanButton}</Text>
             )}
           </Pressable>
 
@@ -167,7 +167,7 @@ export default function QRScanScreen() {
             <View style={styles.manualBox}>
               <TextInput
                 style={styles.manualInput}
-                placeholder="Saisir le QR code de la table"
+                placeholder={Messages.customer.qrManualPlaceholder}
                 placeholderTextColor={Colors.customerTextSecondary}
                 value={manualCode}
                 onChangeText={setManualCode}
@@ -179,7 +179,7 @@ export default function QRScanScreen() {
                   void processQrCode(manualCode);
                 }}
               >
-                <Text style={styles.manualButtonText}>Valider</Text>
+                <Text style={styles.manualButtonText}>{Messages.customer.qrManualSubmit}</Text>
               </Pressable>
             </View>
           ) : (
@@ -187,7 +187,7 @@ export default function QRScanScreen() {
               style={({ pressed }) => pressed && styles.pressed}
               onPress={() => setShowManual(true)}
             >
-              <Text style={styles.link}>Saisir le code manuellement</Text>
+              <Text style={styles.link}>{Messages.customer.qrManualLink}</Text>
             </Pressable>
           )}
 
@@ -195,7 +195,7 @@ export default function QRScanScreen() {
             style={({ pressed }) => [styles.settingsLinkWrapper, pressed && styles.pressed]}
             onPress={() => router.push('/settings')}
           >
-            <Text style={styles.link}>Mes paramètres</Text>
+            <Text style={styles.link}>{Messages.customer.settingsLink}</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

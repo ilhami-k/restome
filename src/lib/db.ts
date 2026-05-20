@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { Allergen } from '../types';
 
@@ -48,7 +49,7 @@ export async function ensureDeviceId(db: SQLiteDatabase): Promise<string> {
   const row = await db.getFirstAsync<{ id: string }>('SELECT id FROM device LIMIT 1');
   if (row?.id) return row.id;
 
-  const id = generateUuid();
+  const id = uuidv4();
   await db.runAsync('INSERT INTO device (id) VALUES (?)', id);
   await db.runAsync("INSERT OR IGNORE INTO preferences (id, theme) VALUES (1, 'light')");
   return id;
@@ -108,12 +109,4 @@ export async function getSuggestedMenuItemIds(db: SQLiteDatabase): Promise<strin
   );
 
   return rows.map((row) => row.menu_item_id);
-}
-
-function generateUuid(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
 }

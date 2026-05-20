@@ -10,6 +10,7 @@ import { SessionProvider } from './src/contexts/SessionContext';
 import { CartProvider } from './src/contexts/CartContext';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { Colors } from './src/constants/colors';
+import { Messages } from './src/constants/messages';
 import { initializeDatabase } from './src/lib/db';
 
 interface AppProvidersProps {
@@ -34,10 +35,8 @@ function ConnectionOverlay() {
   return (
     <View style={styles.offlineOverlay}>
       <View style={styles.offlineCard}>
-        <Text style={styles.offlineTitle}>Pas de connexion</Text>
-        <Text style={styles.offlineText}>
-          RestoMe a besoin d'une connexion internet active pour le parcours client comme pour la cuisine.
-        </Text>
+        <Text style={styles.offlineTitle}>{Messages.app.noConnectionTitle}</Text>
+        <Text style={styles.offlineText}>{Messages.app.noConnectionText}</Text>
       </View>
     </View>
   );

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { randomId } from '../lib/ids';
 import type { CartItem, MenuItem } from '../types';
 
 interface CartContextValue {
@@ -36,7 +37,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return [
         ...prev,
         {
-          cart_item_id: `${menuItem.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          cart_item_id: randomId(menuItem.id),
           menu_item_id: menuItem.id,
           menu_item: menuItem,
           quantity,

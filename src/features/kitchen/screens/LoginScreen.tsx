@@ -8,6 +8,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Colors } from '../../../constants/colors';
+import { Messages } from '../../../constants/messages';
 
 const loginSchema = z.object({
   email: z.string().trim().email('Saisissez une adresse e-mail valide.'),
@@ -35,7 +36,7 @@ export default function LoginScreen() {
     try {
       await login(data.email, data.password);
     } catch {
-      Alert.alert('Connexion impossible', 'Identifiants invalides.');
+      Alert.alert(Messages.kitchen.loginFailedTitle, Messages.kitchen.loginFailedMessage);
     } finally {
       setLoading(false);
     }

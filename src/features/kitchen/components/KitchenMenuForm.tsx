@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Controller } from 'react-hook-form';
 import { Colors } from '../../../constants/colors';
+import { Messages } from '../../../constants/messages';
 import { CATEGORY_LABELS } from '../../../constants/ui';
 import { CATEGORIES } from '../../../types';
 import type { Allergen, Category } from '../../../types';
@@ -174,7 +175,7 @@ export function KitchenMenuForm({
       <View style={styles.formActions}>
         {form.id ? (
           <Pressable style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]} onPress={onCancel}>
-            <Text style={styles.secondaryButtonText}>Annuler</Text>
+            <Text style={styles.secondaryButtonText}>{Messages.common.cancel}</Text>
           </Pressable>
         ) : null}
         <Pressable

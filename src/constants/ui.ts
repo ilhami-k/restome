@@ -1,6 +1,8 @@
 import type { Allergen, Category, ItemStatus, MenuItem } from '../types';
 import { CATEGORIES, ACTIVE_ITEM_STATUSES } from '../types';
 
+const APP_LOCALE = 'fr-BE';
+
 export const CATEGORY_LABELS: Record<Category, string> = {
   starter: 'Entrées',
   main: 'Plats',
@@ -34,6 +36,10 @@ export const KITCHEN_STATUS_FILTERS: { label: string; value: ItemStatus | 'all' 
 
 export function formatPrice(price: number): string {
   return `${price.toFixed(2).replace('.', ',')} €`;
+}
+
+export function formatTime(value: string | number | Date): string {
+  return new Date(value).toLocaleTimeString(APP_LOCALE, { hour: '2-digit', minute: '2-digit' });
 }
 
 export function getMatchingAllergens(

@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: Colors.overlayLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
