@@ -19,7 +19,7 @@ import { useRouter } from 'expo-router';
 import { useSession } from '../../../contexts/SessionContext';
 import { Colors } from '../../../constants/colors';
 import { useTableSession } from '../hooks/useTableSession';
-import { notifySessionJoined } from '../../../services/sessions.service';
+import { notifySessionJoined, notifySessionOpened } from '../../../services/sessions.service';
 
 const KITCHEN_QR_CODE = 'KITCHEN_001';
 
@@ -77,6 +77,7 @@ export default function QRScanScreen() {
         }
 
         setSessionData(result.session, result.table);
+        void notifySessionOpened(result.session.id, result.table.number);
         goToMenu();
       } catch (error: unknown) {
         if (error instanceof Error && error.message === 'TABLE_NOT_FOUND') {

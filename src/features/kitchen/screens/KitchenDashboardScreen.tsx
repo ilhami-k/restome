@@ -48,7 +48,9 @@ export default function KitchenDashboardScreen() {
 
   React.useEffect(() => {
     return subscribeToSessionJoins((notification) => {
-      Alert.alert('Client rejoint', `Un client a rejoint la table ${notification.tableNumber}.`);
+      if (notification.type === 'opened') {
+        Alert.alert('Table ouverte', `La table ${notification.tableNumber} a ouvert une session.`);
+      }
       void refreshSessions();
     });
   }, [refreshSessions]);

@@ -8,6 +8,7 @@ export interface SessionJoinNotification {
   sessionId: string;
   tableNumber: number;
   joinedAt: string;
+  type?: 'opened' | 'joined';
 }
 
 export async function findOpenSessionByTableId(tableId: string): Promise<Session | null> {
@@ -80,6 +81,18 @@ export function subscribeToSessions(onChange: () => void) {
 }
 
 export async function notifySessionJoined(sessionId: string, tableNumber: number): Promise<void> {
+  await notifySessionChanged(sessionId, tableNumber, 'joined');
+}
+
+export async function notifySessionOpened(sessionId: string, tableNumber: number): Promise<void> {
+  await notifySessionChanged(sessionId, tableNumber, 'opened');
+}
+
+async function notifySessionChanged(
+  sessionId: string,
+  tableNumber: number,
+  type: 'opened' | 'joined'
+): Promise<void> {
   const channel = supabase.channel(SESSION_JOINS_CHANNEL);
 
   await new Promise<void>((resolve) => {
@@ -102,6 +115,7 @@ export async function notifySessionJoined(sessionId: string, tableNumber: number
             sessionId,
             tableNumber,
             joinedAt: new Date().toISOString(),
+            type,
           } satisfies SessionJoinNotification,
         })
         .finally(() => {
