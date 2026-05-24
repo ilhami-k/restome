@@ -89,6 +89,23 @@ export function subscribeToOrderItems(orderId: string, onChange: () => void) {
   };
 }
 
+export function subscribeToOrderBySessionId(sessionId: string, onChange: () => void) {
+  const channel = supabase
+    .channel(createChannelName(`orders:${sessionId}`))
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'orders', filter: `session_id=eq.${sessionId}` },
+      () => {
+        onChange();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
+
 export interface KitchenOrderItem extends OrderItem {
   order?: {
     id?: string;

@@ -3,6 +3,7 @@ import {
   fetchLiveOrderItems,
   fetchStatusUpdates,
   findOpenOrderBySessionId,
+  subscribeToOrderBySessionId,
   subscribeToOrderItems,
   subscribeToStatusUpdates,
 } from '../../../services/orders.service';
@@ -24,8 +25,12 @@ export function useLiveOrder(sessionId?: string) {
 
     const currentSessionId = sessionId;
     let mounted = true;
+    let subscribedOrderId: string | null = null;
     let unsubscribeOrderItems = () => {};
     let unsubscribeStatusUpdates = () => {};
+    const unsubscribeOrder = subscribeToOrderBySessionId(currentSessionId, () => {
+      void loadOrder();
+    });
 
     function setMessagesFromUpdates(updates: StatusUpdate[]) {
       const nextMessages: Record<string, string> = {};
@@ -47,6 +52,14 @@ export function useLiveOrder(sessionId?: string) {
         setOrder(nextOrder);
 
         if (nextOrder) {
+          if (subscribedOrderId !== nextOrder.id) {
+            unsubscribeOrderItems();
+            subscribedOrderId = nextOrder.id;
+            unsubscribeOrderItems = subscribeToOrderItems(nextOrder.id, () => {
+              void loadOrder();
+            });
+          }
+
           const nextItems = await fetchLiveOrderItems(nextOrder.id);
           if (mounted) {
             setItems(nextItems);
@@ -68,6 +81,8 @@ export function useLiveOrder(sessionId?: string) {
             }
           }
         } else {
+          unsubscribeOrderItems();
+          subscribedOrderId = null;
           setItems([]);
           setMessagesByItemId({});
         }
@@ -80,18 +95,11 @@ export function useLiveOrder(sessionId?: string) {
       }
     }
 
-    void loadOrder().then((nextOrder) => {
-      if (!mounted || !nextOrder) {
-        return;
-      }
-
-      unsubscribeOrderItems = subscribeToOrderItems(nextOrder.id, () => {
-        void loadOrder();
-      });
-    });
+    void loadOrder();
 
     return () => {
       mounted = false;
+      unsubscribeOrder();
       unsubscribeOrderItems();
       unsubscribeStatusUpdates();
     };
