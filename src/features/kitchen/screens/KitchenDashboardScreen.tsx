@@ -8,18 +8,14 @@ import { Colors } from '../../../constants/colors';
 import { Messages } from '../../../constants/messages';
 import { formatTime } from '../../../constants/ui';
 import { KitchenHeader, kitchenHeaderStyles } from '../components/KitchenHeader';
-import { OrderCard } from '../components/OrderCard';
 import { useKitchenOrders } from '../hooks/useKitchenOrders';
 import { useKitchenSessions } from '../hooks/useKitchenSessions';
 import { subscribeToSessionJoins } from '../../../services/sessions.service';
-import { confirmMarkUnavailable } from '../utils/order-actions';
-import type { GroupedKitchenOrder } from '../hooks/useKitchenOrders';
 import type { Session } from '../../../types';
 
 type DashboardEntry =
   | { id: string; type: 'section'; title: string }
   | { id: string; type: 'session'; session: Session; itemCount: number }
-  | { id: string; type: 'order'; group: GroupedKitchenOrder }
   | { id: string; type: 'empty'; text: string };
 
 export default function KitchenDashboardScreen() {
@@ -31,8 +27,6 @@ export default function KitchenDashboardScreen() {
     loading: ordersLoading,
     error: ordersError,
     refreshOrders,
-    setItemStatus,
-    sendItemMessage,
   } = useKitchenOrders('all');
   const {
     sessions,
@@ -97,15 +91,9 @@ export default function KitchenDashboardScreen() {
           };
         })
       : [{ id: 'sessions-empty', type: 'empty' as const, text: Messages.kitchen.noOpenSession }]),
-    { id: 'orders-title', type: 'section', title: Messages.kitchen.liveQueueTitle },
-    ...(groupedOrders.length > 0
-      ? groupedOrders.map((group) => ({
-          id: `order-${group.sessionId}-${group.orderId}`,
-          type: 'order' as const,
-          group,
-        }))
-      : [{ id: 'orders-empty', type: 'empty' as const, text: Messages.kitchen.noActiveOrders }]),
   ];
+
+  const totalActive = stats.pending + stats.preparing + stats.ready;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -135,20 +123,36 @@ export default function KitchenDashboardScreen() {
               }
             />
 
-            <View style={styles.stats}>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>{stats.pending}</Text>
-                <Text style={styles.statLabel}>EN ATTENTE</Text>
+            <Pressable
+              style={({ pressed }) => [styles.queueCard, pressed && styles.pressed]}
+              onPress={() => router.push('/(kitchen)/queue')}
+            >
+              <View style={styles.queueCardHeader}>
+                <Text style={styles.queueCardTitle}>{Messages.kitchen.liveQueueTitle}</Text>
+                <Text style={styles.queueCardChevron}>›</Text>
               </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>{stats.preparing}</Text>
-                <Text style={styles.statLabel}>EN PRÉPARATION</Text>
+              <View style={styles.queueCardStats}>
+                <View style={styles.queueStat}>
+                  <Text style={[styles.queueStatNumber, { color: Colors.statusPending }]}>{stats.pending}</Text>
+                  <Text style={styles.queueStatLabel}>{Messages.kitchen.liveQueueTabPending}</Text>
+                </View>
+                <View style={styles.queueStatDivider} />
+                <View style={styles.queueStat}>
+                  <Text style={[styles.queueStatNumber, { color: Colors.statusPreparing }]}>{stats.preparing}</Text>
+                  <Text style={styles.queueStatLabel}>{Messages.kitchen.liveQueueTabPreparing}</Text>
+                </View>
+                <View style={styles.queueStatDivider} />
+                <View style={styles.queueStat}>
+                  <Text style={[styles.queueStatNumber, { color: Colors.statusReady }]}>{stats.ready}</Text>
+                  <Text style={styles.queueStatLabel}>{Messages.kitchen.liveQueueTabReady}</Text>
+                </View>
               </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>{stats.ready}</Text>
-                <Text style={styles.statLabel}>PRÊTES</Text>
-              </View>
-            </View>
+              <Text style={styles.queueCardCta}>
+                {totalActive > 0
+                  ? Messages.kitchen.liveQueueOpen
+                  : Messages.kitchen.noActiveOrders}
+              </Text>
+            </Pressable>
 
             {ordersLoading || sessionsLoading ? <ActivityIndicator color={Colors.primary} style={styles.loader} /> : null}
             {ordersError ? <Text style={kitchenHeaderStyles.errorText}>{ordersError}</Text> : null}
@@ -162,21 +166,6 @@ export default function KitchenDashboardScreen() {
 
           if (entry.type === 'empty') {
             return <Text style={styles.emptyInline}>{entry.text}</Text>;
-          }
-
-          if (entry.type === 'order') {
-            return (
-              <OrderCard
-                group={entry.group}
-                onUpdateStatus={(itemId, status) => {
-                  void setItemStatus(itemId, status);
-                }}
-                onMarkUnavailable={(itemId) => confirmMarkUnavailable(setItemStatus, itemId)}
-                onSendMessage={(itemId, message) => {
-                  void sendItemMessage(itemId, message);
-                }}
-              />
-            );
           }
 
           const { session, itemCount } = entry;
@@ -233,29 +222,59 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.kitchenTextSecondary,
   },
-  stats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-  },
-  statBox: {
-    flex: 1,
+  queueCard: {
     backgroundColor: Colors.kitchenCard,
-    borderRadius: 10,
-    paddingVertical: 10,
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 14,
+    gap: 12,
+  },
+  queueCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  queueCardTitle: {
+    color: Colors.white,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  queueCardChevron: {
+    color: Colors.kitchenTextSecondary,
+    fontSize: 22,
+    fontWeight: '700',
+    lineHeight: 22,
+  },
+  queueCardStats: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.white,
+  queueStat: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
   },
-  statLabel: {
+  queueStatNumber: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  queueStatLabel: {
     fontSize: 10,
     color: Colors.kitchenTextSecondary,
-    marginTop: 2,
     letterSpacing: 0.7,
+    fontWeight: '600',
+  },
+  queueStatDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    backgroundColor: Colors.kitchenBorder,
+  },
+  queueCardCta: {
+    color: Colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'right',
   },
   loader: {
     marginTop: 14,

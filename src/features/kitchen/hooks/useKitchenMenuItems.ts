@@ -53,10 +53,13 @@ export function useKitchenMenuItems(search: string) {
   );
 
   const itemsByCategory = useMemo(() => {
-    return CATEGORIES.reduce<Record<string, MenuItem[]>>((accumulator, category) => {
-      accumulator[category] = filteredItems.filter((item) => item.category === category);
-      return accumulator;
-    }, {});
+    const nextItemsByCategory: Record<string, MenuItem[]> = {};
+
+    for (const category of CATEGORIES) {
+      nextItemsByCategory[category] = filteredItems.filter((item) => item.category === category);
+    }
+
+    return nextItemsByCategory;
   }, [filteredItems]);
 
   async function toggleItemAvailability(item: MenuItem, message: string | null) {

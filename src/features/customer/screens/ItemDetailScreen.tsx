@@ -50,6 +50,7 @@ export default function ItemDetailScreen() {
 
   const totalPrice = item.price * quantity;
   const matchingAllergens = getMatchingAllergens(item.allergens, selectedAllergens);
+  const unavailableMessage = item.availability_message || "Ce plat n'est pas disponible pour le moment.";
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -86,6 +87,13 @@ export default function ItemDetailScreen() {
               <Text style={styles.warningText}>
                 Ce plat contient: {matchingAllergens.map((allergen) => allergen.name).join(', ')}.
               </Text>
+            </View>
+          ) : null}
+
+          {!item.available ? (
+            <View style={[styles.warningCard, { backgroundColor: colors.unavailableBackground }]}>
+              <Text style={styles.warningTitle}>Indisponible</Text>
+              <Text style={styles.warningText}>{unavailableMessage}</Text>
             </View>
           ) : null}
 
@@ -133,13 +141,20 @@ export default function ItemDetailScreen() {
       </ScrollView>
 
       <Pressable
-        style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.addButton, pressed && styles.pressed, !item.available && styles.disabled]}
         onPress={() => {
+          if (!item.available) {
+            return;
+          }
+
           addItem(item, quantity, notes);
           router.back();
         }}
+        disabled={!item.available}
       >
-        <Text style={styles.addButtonText}>Ajouter à la commande - {formatPrice(totalPrice)}</Text>
+        <Text style={styles.addButtonText}>
+          {item.available ? `Ajouter à la commande - ${formatPrice(totalPrice)}` : 'Indisponible'}
+        </Text>
       </Pressable>
     </SafeAreaView>
   );
@@ -300,5 +315,8 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.8,
+  },
+  disabled: {
+    opacity: 0.5,
   },
 });

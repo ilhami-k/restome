@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../constants/colors';
 
 interface CartBarProps {
@@ -18,7 +19,10 @@ export function CartBar({ itemCount, totalLabel, onPress, bottomOffset = 20 }: C
       <View style={styles.cartBarCount}>
         <Text style={styles.cartBarCountText}>{itemCount}</Text>
       </View>
-      <Text style={styles.cartBarText}>Voir la commande</Text>
+      <View style={styles.cartBarLabel}>
+        <Ionicons name="cart-outline" size={18} color={Colors.white} />
+        <Text style={styles.cartBarText}>Voir la commande</Text>
+      </View>
       <Text style={styles.cartBarTotal}>{totalLabel}</Text>
     </Pressable>
   );
@@ -51,10 +55,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   cartBarText: {
-    flex: 1,
     color: Colors.white,
     fontSize: 15,
     fontWeight: '700',
+  },
+  cartBarLabel: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginLeft: 12,
   },
   cartBarTotal: {

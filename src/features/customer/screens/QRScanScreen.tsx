@@ -67,7 +67,7 @@ export default function QRScanScreen() {
                 text: Messages.customer.joinSessionButton,
                 onPress: () => {
                   setSessionData(result.session, result.table);
-                  void notifySessionJoined(result.session.id, result.table.number);
+                  notifySessionJoined(result.session.id, result.table.number);
                   goToMenu();
                 },
               },
@@ -77,7 +77,7 @@ export default function QRScanScreen() {
         }
 
         setSessionData(result.session, result.table);
-        void notifySessionOpened(result.session.id, result.table.number);
+        notifySessionOpened(result.session.id, result.table.number);
         goToMenu();
       } catch (error: unknown) {
         if (error instanceof Error && error.message === 'TABLE_NOT_FOUND') {

@@ -25,10 +25,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getCurrentAuthSession().then((session) => {
-      setIsAuthenticated(!!session);
-      setIsLoading(false);
-    });
+    getCurrentAuthSession()
+      .then((session) => {
+        setIsAuthenticated(!!session);
+      })
+      .catch(() => {
+        setIsAuthenticated(false);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
 
     const unsubscribe = subscribeToAuthStateChange((session) => {
       setIsAuthenticated(!!session);

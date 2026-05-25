@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useUserSettings } from '../../../contexts/UserSettingsContext';
 import { Colors, getCustomerColors } from '../../../constants/colors';
@@ -27,7 +28,8 @@ export default function SettingsScreen() {
 
       <View style={styles.header}>
         <Pressable style={({ pressed }) => [styles.backButton, pressed && styles.pressed]} onPress={() => router.back()}>
-          <Text style={styles.backText}>← Retour</Text>
+          <Ionicons name="arrow-back" size={16} color={Colors.primary} />
+          <Text style={styles.backText}>Retour</Text>
         </Pressable>
         <Text style={[styles.title, { color: colors.text }]}>Paramètres</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -118,6 +120,9 @@ const styles = StyleSheet.create({
   backButton: {
     alignSelf: 'flex-start',
     marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   backText: {
     fontSize: 14,

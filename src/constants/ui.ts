@@ -42,6 +42,23 @@ export function formatTime(value: string | number | Date): string {
   return new Date(value).toLocaleTimeString(APP_LOCALE, { hour: '2-digit', minute: '2-digit' });
 }
 
+export function formatRelativeTime(value: string | number | Date, now: Date = new Date()): string {
+  const diffMs = now.getTime() - new Date(value).getTime();
+  const minutes = Math.max(0, Math.floor(diffMs / 60000));
+  if (minutes < 1) {
+    return "à l'instant";
+  }
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remaining = minutes % 60;
+  if (remaining === 0) {
+    return `${hours} h`;
+  }
+  return `${hours} h ${remaining.toString().padStart(2, '0')}`;
+}
+
 export function getMatchingAllergens(
   itemAllergens: Allergen[] | undefined,
   selectedAllergens: Allergen[]

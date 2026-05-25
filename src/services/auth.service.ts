@@ -2,8 +2,18 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 export async function getCurrentAuthSession(): Promise<Session | null> {
-  const { data } = await supabase.auth.getSession();
-  return data.session;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('Invalid Refresh Token') || message.includes('Refresh Token Not Found')) {
+      await supabase.auth.signOut({ scope: 'local' });
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 export function subscribeToAuthStateChange(onChange: (session: Session | null) => void) {
@@ -24,5 +34,5 @@ export async function signInWithPassword(email: string, password: string): Promi
 }
 
 export async function signOut(): Promise<void> {
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: 'local' });
 }

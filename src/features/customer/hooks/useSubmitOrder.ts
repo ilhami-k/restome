@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
 import { addOrderHistory } from '../../../lib/db';
 import { buildOrderItemInputs } from '../../../services/order-items.mapper';
-import { getOrCreateOpenOrder, insertOrderItems } from '../../../services/orders.service';
+import {
+  getOrCreateOpenOrder,
+  insertOrderItems,
+  notifyOrderSubmitted,
+} from '../../../services/orders.service';
 import type { CartItem, Session } from '../../../types';
 
 export function useSubmitOrder() {
@@ -15,11 +19,16 @@ export function useSubmitOrder() {
     try {
       const order = await getOrCreateOpenOrder(session.id);
       await insertOrderItems(buildOrderItemInputs(order.id, items));
+      await notifyOrderSubmitted(session.id);
 
-      for (const item of items) {
-        for (let index = 0; index < item.quantity; index += 1) {
-          await addOrderHistory(db, item.menu_item_id, item.menu_item.name);
+      try {
+        for (const item of items) {
+          for (let index = 0; index < item.quantity; index += 1) {
+            await addOrderHistory(db, item.menu_item_id, item.menu_item.name);
+          }
         }
+      } catch {
+        // Local suggestions are best-effort; the Supabase order has already been accepted.
       }
     } finally {
       setSubmitting(false);

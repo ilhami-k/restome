@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../constants/colors';
 import type { getCustomerColors } from '../../../constants/colors';
 import type { Allergen } from '../../../types';
@@ -47,7 +48,10 @@ export function MenuHeader({
             ]}
             onPress={onOpenCart}
           >
-            <Text style={[styles.cartIcon, { color: colors.text }]}>Panier</Text>
+            <View style={styles.cartButtonContent}>
+              <Ionicons name="cart-outline" size={17} color={colors.text} />
+              <Text style={[styles.cartText, { color: colors.text }]}>Panier</Text>
+            </View>
             {itemCount > 0 && (
               <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>{itemCount}</Text>
@@ -125,7 +129,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.customerBorder,
     position: 'relative',
   },
-  cartIcon: {
+  cartButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  cartText: {
     fontSize: 13,
     fontWeight: '600',
     color: Colors.customerText,

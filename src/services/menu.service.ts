@@ -23,9 +23,16 @@ export interface MenuImageUpload {
 }
 
 function mapMenuRow(row: MenuRow): MenuItem {
+  const allergens: Allergen[] = [];
+  for (const entry of row.allergens ?? []) {
+    if (entry.allergen) {
+      allergens.push(entry.allergen);
+    }
+  }
+
   return {
     ...row,
-    allergens: ((row.allergens ?? []).map((entry) => entry.allergen).filter(Boolean) as Allergen[]),
+    allergens,
   };
 }
 
@@ -114,28 +121,56 @@ export async function updateMenuItem(menuItemId: string, input: MenuItemInput): 
 }
 
 async function replaceMenuItemAllergens(menuItemId: string, allergenIds: string[]): Promise<void> {
-  const { error: deleteError } = await supabase
-    .from('menu_item_allergens')
-    .delete()
-    .eq('menu_item_id', menuItemId);
-
-  if (deleteError) {
-    throw deleteError;
-  }
-
   if (allergenIds.length === 0) {
+    const { error } = await supabase
+      .from('menu_item_allergens')
+      .delete()
+      .eq('menu_item_id', menuItemId);
+
+    if (error) {
+      throw error;
+    }
+
     return;
   }
 
-  const { error: insertError } = await supabase.from('menu_item_allergens').insert(
-    allergenIds.map((allergenId) => ({
-      menu_item_id: menuItemId,
-      allergen_id: allergenId,
-    }))
-  );
+  const { data, error: fetchError } = await supabase
+    .from('menu_item_allergens')
+    .select('allergen_id')
+    .eq('menu_item_id', menuItemId);
 
-  if (insertError) {
-    throw insertError;
+  if (fetchError) {
+    throw fetchError;
+  }
+
+  const currentIds = new Set((data ?? []).map((row) => row.allergen_id as string));
+  const nextIds = new Set(allergenIds);
+  const idsToInsert = allergenIds.filter((allergenId) => !currentIds.has(allergenId));
+  const idsToDelete = [...currentIds].filter((allergenId) => !nextIds.has(allergenId));
+
+  if (idsToInsert.length > 0) {
+    const { error: insertError } = await supabase.from('menu_item_allergens').insert(
+      idsToInsert.map((allergenId) => ({
+        menu_item_id: menuItemId,
+        allergen_id: allergenId,
+      }))
+    );
+
+    if (insertError) {
+      throw insertError;
+    }
+  }
+
+  for (const allergenId of idsToDelete) {
+    const { error: deleteError } = await supabase
+      .from('menu_item_allergens')
+      .delete()
+      .eq('menu_item_id', menuItemId)
+      .eq('allergen_id', allergenId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
   }
 }
 

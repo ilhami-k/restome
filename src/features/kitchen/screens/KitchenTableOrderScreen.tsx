@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../constants/colors';
 import { Messages } from '../../../constants/messages';
 import { KITCHEN_STATUS_FILTERS } from '../../../constants/ui';
@@ -52,6 +53,24 @@ export default function KitchenTableOrderScreen() {
     }
   }
 
+  async function updateItemStatus(itemId: string, status: ItemStatus, message?: string) {
+    try {
+      await setItemStatus(itemId, status, message);
+    } catch {
+      Alert.alert(Messages.common.error, Messages.kitchen.orderActionError);
+    }
+  }
+
+  async function sendMessage(itemId: string, message: string) {
+    try {
+      await sendItemMessage(itemId, message);
+      return true;
+    } catch {
+      Alert.alert(Messages.common.error, Messages.kitchen.orderActionError);
+      return false;
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="light" />
@@ -61,7 +80,10 @@ export default function KitchenTableOrderScreen() {
         style={styles.header}
         leading={
           <Pressable style={({ pressed }) => pressed && styles.pressed} onPress={() => router.back()} hitSlop={8}>
-            <Text style={styles.back}>Retour</Text>
+            <View style={styles.backButtonContent}>
+              <Ionicons name="arrow-back" size={15} color={Colors.kitchenTextSecondary} />
+              <Text style={styles.back}>Retour</Text>
+            </View>
           </Pressable>
         }
         closeLabel={closing ? Messages.kitchen.closeSessionClosing : Messages.common.close}
@@ -102,12 +124,10 @@ export default function KitchenTableOrderScreen() {
           <OrderCard
             group={group}
             onUpdateStatus={(itemId, status) => {
-              void setItemStatus(itemId, status);
+              void updateItemStatus(itemId, status);
             }}
-            onMarkUnavailable={(itemId) => confirmMarkUnavailable(setItemStatus, itemId)}
-            onSendMessage={(itemId, message) => {
-              void sendItemMessage(itemId, message);
-            }}
+            onMarkUnavailable={(itemId) => confirmMarkUnavailable(updateItemStatus, itemId)}
+            onSendMessage={sendMessage}
           />
         )}
         ListEmptyComponent={!loading && !error ? <Text style={styles.empty}>{Messages.kitchen.noActiveOrders}</Text> : null}
@@ -130,6 +150,11 @@ const styles = StyleSheet.create({
   back: {
     color: Colors.kitchenTextSecondary,
     fontSize: 13,
+  },
+  backButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   pills: {
     flexDirection: 'row',

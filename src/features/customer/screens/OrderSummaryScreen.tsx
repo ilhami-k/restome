@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../../contexts/CartContext';
 import { useSession } from '../../../contexts/SessionContext';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -52,7 +53,8 @@ export default function OrderSummaryScreen() {
       <StatusBar style={colors.statusBar} />
 
       <Pressable style={({ pressed }) => [styles.backButton, pressed && styles.pressed]} onPress={() => router.back()}>
-        <Text style={styles.backText}>← Retour au menu</Text>
+        <Ionicons name="arrow-back" size={16} color={Colors.primary} />
+        <Text style={styles.backText}>Retour au menu</Text>
       </Pressable>
 
       <Text style={[styles.title, { color: colors.text }]}>Votre commande</Text>
@@ -144,6 +146,9 @@ const styles = StyleSheet.create({
   backButton: {
     marginTop: 4,
     marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   backText: {
     fontSize: 14,

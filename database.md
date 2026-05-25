@@ -22,11 +22,15 @@ Restaurant tables. Each has a physical QR code.
 **Sample data**
 ```sql
 insert into tables (number, qr_code) values
-  (1, 'table-001'),
-  (2, 'table-002'),
-  (3, 'table-003'),
-  (4, 'table-004');
+  (1, 'TABLE_001'),
+  (2, 'TABLE_002'),
+  (3, 'TABLE_003'),
+  (4, 'TABLE_004'),
+  (5, 'TABLE_005'),
+  (6, 'TABLE_006');
 ```
+
+These values match the QR files in `src/qr-codes/`.
 
 ---
 
@@ -164,8 +168,10 @@ Enable RLS on all tables. Policies:
 Enable Supabase Realtime on these tables:
 
 1. `order_items` — kitchen subscribes to `INSERT` and `UPDATE` (new orders appear instantly)
-2. `status_updates` — customer subscribes to `INSERT` (kitchen messages appear instantly)
-3. `menu_items` — customer subscribes to `UPDATE` on `available` field (availability changes pushed in real time)
+2. `orders` — kitchen refreshes when open orders are created or closed
+3. `sessions` — kitchen refreshes when tables are opened or closed
+4. `status_updates` — customer subscribes to `INSERT` (kitchen messages appear instantly)
+5. `menu_items` — customer subscribes to `UPDATE` on `available` field (availability changes pushed in real time)
 
 If you already created the database before `availability_message` was added, run:
 
@@ -174,6 +180,33 @@ alter table menu_items add column if not exists availability_message text;
 ```
 
 Enable the tables in the Supabase Dashboard → Database → Replication.
+
+The app also uses Supabase Realtime broadcast channels:
+
+- `kitchen_orders` — customer notifies kitchen after submitting an order
+- `session_joins` — customer notifies kitchen when a table session is opened or joined
+
+These broadcast channels do not require database replication, but the app still needs the normal Supabase Realtime service to be available.
+
+---
+
+## Storage
+
+Kitchen menu image upload uses Supabase Storage.
+
+Create one public bucket:
+
+```txt
+menu-images
+```
+
+Expected behavior:
+
+- Kitchen staff can upload images to `menu-images`.
+- Public read access is enabled so customer menu images can render from their public URL.
+- Uploaded paths are stored in `menu_items.image_url`.
+
+If Storage policies are enabled, authenticated kitchen users need permission to upload into the `menu-images` bucket.
 
 ---
 
@@ -228,6 +261,8 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 Kitchen staff authentication uses Supabase Auth (email/password).
+
+Create at least one kitchen demo user in Supabase Auth before testing. Do not commit demo credentials to the public repository; provide them privately to the evaluator during the demo or by private message.
 
 ---
 

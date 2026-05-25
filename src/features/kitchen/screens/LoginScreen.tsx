@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -104,6 +105,7 @@ export default function LoginScreen() {
           style={({ pressed }) => [styles.scanButton, pressed && styles.pressed]}
           onPress={() => router.replace('/')}
         >
+          <Ionicons name="arrow-back" size={15} color={Colors.kitchenTextSecondary} />
           <Text style={styles.scanButtonText}>Retour au scan QR</Text>
         </Pressable>
       </View>
@@ -176,7 +178,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   scanButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
     paddingVertical: 10,
   },
   scanButtonText: {

@@ -34,6 +34,7 @@ export default function KitchenLayout() {
       tabBar={(props) => (isLoginRoute ? null : <KitchenTabBar {...props} />)}
     >
       <Tabs.Screen name="dashboard" />
+      <Tabs.Screen name="queue" options={{ href: null }} />
       <Tabs.Screen name="tables/[sessionId]" options={{ href: null }} />
       <Tabs.Screen name="menu-manager" />
       <Tabs.Screen name="login" options={{ href: null }} />

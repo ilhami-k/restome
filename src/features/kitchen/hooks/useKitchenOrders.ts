@@ -3,6 +3,7 @@ import {
   createStatusUpdate,
   fetchKitchenOrderItems,
   subscribeToKitchenOrderItems,
+  subscribeToOrderSubmissions,
   updateOrderItemStatus,
   type KitchenOrderItem,
 } from '../../../services/orders.service';
@@ -56,13 +57,17 @@ export function useKitchenOrders(filter: ItemStatus | 'all', sessionId?: string)
     }
 
     void loadOrders();
-    const unsubscribe = subscribeToKitchenOrderItems(() => {
+    const unsubscribePostgres = subscribeToKitchenOrderItems(() => {
+      void loadOrders();
+    });
+    const unsubscribeSubmissions = subscribeToOrderSubmissions(() => {
       void loadOrders();
     });
 
     return () => {
       mounted = false;
-      unsubscribe();
+      unsubscribePostgres();
+      unsubscribeSubmissions();
     };
   }, [sessionId]);
 
@@ -75,14 +80,16 @@ export function useKitchenOrders(filter: ItemStatus | 'all', sessionId?: string)
   }, [items]);
 
   const groupedOrders = useMemo(() => {
-    const grouped = items.reduce<Record<string, GroupedKitchenOrder>>((accumulator, item) => {
+    const groupsByKey: Record<string, GroupedKitchenOrder> = {};
+
+    for (const item of items) {
       const tableNumber = item.order?.session?.table?.number ?? 0;
       const itemSessionId = item.order?.session?.id ?? '';
       const orderId = item.order?.id ?? item.order_id;
       const key = `${itemSessionId}-${orderId}`;
 
-      if (!accumulator[key]) {
-        accumulator[key] = {
+      if (!groupsByKey[key]) {
+        groupsByKey[key] = {
           sessionId: itemSessionId,
           orderId,
           tableNumber,
@@ -91,11 +98,10 @@ export function useKitchenOrders(filter: ItemStatus | 'all', sessionId?: string)
         };
       }
 
-      accumulator[key].items.push(item);
-      return accumulator;
-    }, {});
+      groupsByKey[key].items.push(item);
+    }
 
-    return Object.values(grouped)
+    return Object.values(groupsByKey)
       .map((group) => ({
         ...group,
         items: filter === 'all' ? group.items : group.items.filter((item) => item.status === filter),

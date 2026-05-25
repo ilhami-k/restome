@@ -25,19 +25,20 @@ export function KitchenMenuList({
   listRef,
   ListHeaderComponent,
   onToggleItem,
-  onEditItem,
+	onEditItem,
 }: KitchenMenuListProps) {
-  const entries = categoryOrder.flatMap<KitchenMenuListEntry>((category) => {
-    const categoryItems = itemsByCategory[category];
-    if (categoryItems.length === 0) {
-      return [];
-    }
+  const entries: KitchenMenuListEntry[] = [];
 
-    return [
-      { id: `section-${category}`, type: 'section', category },
-      ...categoryItems.map((item) => ({ id: item.id, type: 'item' as const, item })),
-    ];
-  });
+  for (const category of categoryOrder) {
+    const categoryItems = itemsByCategory[category];
+    if (categoryItems.length > 0) {
+      entries.push({ id: `section-${category}`, type: 'section', category });
+
+      for (const item of categoryItems) {
+        entries.push({ id: item.id, type: 'item', item });
+      }
+    }
+  }
 
   return (
     <FlatList

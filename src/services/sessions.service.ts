@@ -56,16 +56,17 @@ export async function fetchOpenSessions(): Promise<Session[]> {
 }
 
 export async function closeSession(sessionId: string): Promise<void> {
-  await closeOpenOrderBySessionId(sessionId);
-
   const { error } = await supabase
     .from('sessions')
     .update({ status: 'closed', closed_at: new Date().toISOString() })
-    .eq('id', sessionId);
+    .eq('id', sessionId)
+    .eq('status', 'open');
 
   if (error) {
     throw error;
   }
+
+  await closeOpenOrderBySessionId(sessionId);
 }
 
 export function subscribeToSessions(onChange: () => void) {
@@ -81,49 +82,46 @@ export function subscribeToSessions(onChange: () => void) {
   };
 }
 
-export async function notifySessionJoined(sessionId: string, tableNumber: number): Promise<void> {
-  await notifySessionChanged(sessionId, tableNumber, 'joined');
+export function notifySessionJoined(sessionId: string, tableNumber: number): void {
+  notifySessionChanged(sessionId, tableNumber, 'joined');
 }
 
-export async function notifySessionOpened(sessionId: string, tableNumber: number): Promise<void> {
-  await notifySessionChanged(sessionId, tableNumber, 'opened');
+export function notifySessionOpened(sessionId: string, tableNumber: number): void {
+  notifySessionChanged(sessionId, tableNumber, 'opened');
 }
 
-async function notifySessionChanged(
+function notifySessionChanged(
   sessionId: string,
   tableNumber: number,
   type: 'opened' | 'joined'
-): Promise<void> {
+): void {
   const channel = supabase.channel(SESSION_JOINS_CHANNEL);
+  const payload: SessionJoinNotification = {
+    sessionId,
+    tableNumber,
+    joinedAt: new Date().toISOString(),
+    type,
+  };
 
-  await new Promise<void>((resolve) => {
-    const timeout = setTimeout(() => {
-      void supabase.removeChannel(channel);
-      resolve();
-    }, 2000);
+  const timeout = setTimeout(() => {
+    void supabase.removeChannel(channel);
+  }, 2000);
 
-    channel.subscribe((status) => {
-      if (status !== 'SUBSCRIBED') {
-        return;
-      }
+  channel.subscribe((status) => {
+    if (status !== 'SUBSCRIBED') {
+      return;
+    }
 
-      clearTimeout(timeout);
-      void channel
-        .send({
-          type: 'broadcast',
-          event: 'session_joined',
-          payload: {
-            sessionId,
-            tableNumber,
-            joinedAt: new Date().toISOString(),
-            type,
-          } satisfies SessionJoinNotification,
-        })
-        .finally(() => {
-          void supabase.removeChannel(channel);
-          resolve();
-        });
-    });
+    clearTimeout(timeout);
+    void channel
+      .send({
+        type: 'broadcast',
+        event: 'session_joined',
+        payload,
+      })
+      .finally(() => {
+        void supabase.removeChannel(channel);
+      });
   });
 }
 

@@ -13,13 +13,20 @@ export function useSuggestedMenuItems(items: MenuItem[], selectedAllergens: Alle
 
     async function loadSuggestions() {
       const ids = await getSuggestedMenuItemIds(db);
-      const nextSuggestions = ids
-        .map((id) =>
-          items.find(
-            (item) => item.id === id && item.available && !containsSelectedAllergen(item, selectedAllergens)
-          )
-        )
-        .filter(Boolean) as MenuItem[];
+      const nextSuggestions: MenuItem[] = [];
+
+      for (const id of ids) {
+        const item = items.find(
+          (menuItem) =>
+            menuItem.id === id &&
+            menuItem.available &&
+            !containsSelectedAllergen(menuItem, selectedAllergens)
+        );
+
+        if (item) {
+          nextSuggestions.push(item);
+        }
+      }
 
       if (mounted) {
         setSuggestedItems(nextSuggestions);

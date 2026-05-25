@@ -3,6 +3,13 @@ import { createChannelName } from '../lib/realtime';
 import { ACTIVE_ITEM_STATUSES } from '../types';
 import type { ItemStatus, Order, OrderItem, StatusUpdate } from '../types';
 
+const KITCHEN_ORDERS_CHANNEL = 'kitchen_orders';
+
+export interface OrderSubmittedNotification {
+  sessionId: string;
+  submittedAt: string;
+}
+
 export interface NewOrderItemInput {
   order_id: string;
   menu_item_id: string;
@@ -56,6 +63,54 @@ export async function insertOrderItems(items: NewOrderItemInput[]): Promise<void
   if (error) {
     throw error;
   }
+}
+
+export function notifyOrderSubmitted(sessionId: string): Promise<void> {
+  const channel = supabase.channel(KITCHEN_ORDERS_CHANNEL, {
+    config: {
+      broadcast: { ack: true },
+    },
+  });
+  const payload: OrderSubmittedNotification = {
+    sessionId,
+    submittedAt: new Date().toISOString(),
+  };
+
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      void supabase.removeChannel(channel);
+      resolve();
+    }, 5000);
+
+    channel.subscribe((status) => {
+      if (status !== 'SUBSCRIBED') {
+        return;
+      }
+
+      clearTimeout(timeout);
+      void channel
+        .send({ type: 'broadcast', event: 'order_submitted', payload })
+        .finally(() => {
+          void supabase.removeChannel(channel);
+          resolve();
+        });
+    });
+  });
+}
+
+export function subscribeToOrderSubmissions(
+  onSubmit: (notification: OrderSubmittedNotification) => void
+) {
+  const channel = supabase
+    .channel(KITCHEN_ORDERS_CHANNEL)
+    .on('broadcast', { event: 'order_submitted' }, (payload) => {
+      onSubmit(payload.payload as OrderSubmittedNotification);
+    })
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
 }
 
 export async function fetchLiveOrderItems(orderId: string): Promise<OrderItem[]> {

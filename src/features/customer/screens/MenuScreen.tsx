@@ -86,6 +86,10 @@ export default function MenuScreen() {
   );
 
   const displayedItems = useMemo(() => menuItems.filter((item) => {
+    if (!item.available) {
+      return false;
+    }
+
     const hasSelectedAllergen = containsSelectedAllergen(item, selectedAllergens);
     return activeFilter === 'allergens' ? hasSelectedAllergen : !hasSelectedAllergen;
   }), [activeFilter, menuItems, selectedAllergens]);

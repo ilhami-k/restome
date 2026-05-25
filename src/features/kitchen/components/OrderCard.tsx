@@ -10,20 +10,22 @@ interface OrderCardProps {
   group: GroupedKitchenOrder;
   onUpdateStatus: (itemId: string, status: ItemStatus) => void;
   onMarkUnavailable: (itemId: string) => void;
-  onSendMessage: (itemId: string, message: string) => void;
+  onSendMessage: (itemId: string, message: string) => Promise<boolean>;
 }
 
 export function OrderCard({ group, onUpdateStatus, onMarkUnavailable, onSendMessage }: OrderCardProps) {
   const [messages, setMessages] = useState<Record<string, string>>({});
 
-  function sendMessage(itemId: string) {
+  async function sendMessage(itemId: string) {
     const message = messages[itemId]?.trim();
     if (!message) {
       return;
     }
 
-    onSendMessage(itemId, message);
-    setMessages((current) => ({ ...current, [itemId]: '' }));
+    const sent = await onSendMessage(itemId, message);
+    if (sent) {
+      setMessages((current) => ({ ...current, [itemId]: '' }));
+    }
   }
 
   return (
@@ -102,7 +104,9 @@ export function OrderCard({ group, onUpdateStatus, onMarkUnavailable, onSendMess
             />
             <Pressable
               style={({ pressed }) => [styles.messageButton, pressed && styles.pressed]}
-              onPress={() => sendMessage(item.id)}
+              onPress={() => {
+                void sendMessage(item.id);
+              }}
             >
               <Text style={styles.messageButtonText}>Envoyer</Text>
             </Pressable>
