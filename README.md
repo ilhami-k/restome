@@ -107,12 +107,3 @@ Important setup points:
 - Payment is out of scope.
 - The bill request screen is interface/local feedback only; it is not persisted in Supabase.
 
-## Hand-In Notes
-
-Before submitting:
-
-- Remove `node_modules` from the ZIP.
-- Keep the final dossier PDF at the project root.
-- Keep the GitHub repository public.
-- Make sure the `.env` values are documented for the evaluator.
-- Provide kitchen demo credentials privately, not in the public repository.
