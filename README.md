@@ -1,88 +1,99 @@
 # RestoMe
 
-RestoMe is an Expo React Native app for in-restaurant ordering.
+RestoMe est une application mobile React Native développée avec Expo pour la commande à table en restaurant.
 
-Customers scan a table QR code, browse the menu, add items to a local cart, submit an order, and follow item status in real time. Kitchen staff enter through a hidden staff QR code, log in, manage the live order queue, update item statuses, send messages, and manage menu items.
+Les clients scannent un QR code de table, consultent le menu, ajoutent des articles au panier, envoient une commande et suivent l'état des articles en temps réel. Le personnel cuisine accède à l'application via un QR code staff caché, se connecte, gère la file de commandes, met à jour les statuts, envoie des messages aux clients et gère le menu.
 
-## Requirements
+## Prérequis
 
-- Node.js 20.19.4 or newer
+- Node.js 20.19.4 ou version plus récente
 - npm
-- Expo Go on a physical phone, or an Android emulator through Android Studio
-- A configured Supabase project
+- Expo Go sur un appareil physique, ou un émulateur Android via Android Studio
+- Un projet Supabase configuré
 
-## Environment
+## Variables d'environnement
 
-Create a `.env` file at the project root:
+Créer un fichier `.env` à la racine du projet :
 
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-The .env file and the values are provided by email (or in the document requested by the professor)
 ```
 
-The `.env` file is required to connect the app to Supabase. It is ignored by Git and must be provided separately when testing the project.
+Le fichier `.env` est requis pour connecter l'application à Supabase. Il est ignoré par Git. Les valeurs réelles ainsi que les identifiants de démonstration cuisine sont fournis dans le dossier de remise (`[React Native] Remise de Projet - Ilhami Kandemir.pdf`), section 7.
 
-## Install And Run
+## Installation et lancement
 
 ```bash
 npm install
 npm run start
 ```
 
-Then scan the Expo QR code with Expo Go.
+Scanner ensuite le QR code Expo avec Expo Go sur un appareil physique.
 
-If the phone cannot reach the local development server, use the tunnel command:
+Si le téléphone ne parvient pas à joindre le serveur de développement, utiliser le mode tunnel :
 
 ```bash
 npm run start:tunnel
 ```
 
-If tunnel mode has ngrok/network issues, either close ALL terminals or restart the computer. If that does not work the recommended fallback is Android Studio:
+Si le tunnel échoue, c'est généralement parce qu'une instance ngrok est déjà ouverte ailleurs (autre terminal, autre session). ngrok n'autorise qu'une seule connexion simultanée par compte gratuit. Pour résoudre le problème, fermer tous les terminaux ouverts et relancer la commande. Si cela ne suffit pas, redémarrer l'ordinateur.
 
-1. Start an Android emulator.
-2. Run `npm run start`.
-3. Press `a` in the Expo terminal to open the app on the emulator.
+En dernier recours, utiliser Android Studio :
 
-## Demo Access
+1. Démarrer un émulateur Android.
+2. Exécuter `npm run start`.
+3. Appuyer sur `a` dans le terminal Expo pour ouvrir l'application sur l'émulateur.
 
-Customer QR codes are stored in `src/qr-codes/`.
+Cette méthode ne dépend ni du réseau local ni du tunnel et est la plus fiable pour tester l'application.
 
-Available table codes:
+## QR Codes
 
-```txt
-TABLE_001
-TABLE_002
-TABLE_003
-TABLE_004
-TABLE_005
-TABLE_006
+Les QR codes client sont disponibles dans `src/qr-codes/`. Ils peuvent aussi être saisis manuellement depuis l'écran d'accueil.
+
+Codes de table disponibles :
+
+```
+TABLE_001  TABLE_002  TABLE_003
+TABLE_004  TABLE_005  TABLE_006
 ```
 
-Kitchen access is hidden from the customer UI. To open kitchen mode, scan `src/qr-codes/kitchen.svg` or type:
+L'accès cuisine est caché de l'interface client. Pour entrer en mode cuisine, scanner `src/qr-codes/kitchen.svg` ou taper :
 
-```txt
+```
 KITCHEN_001
 ```
 
-Kitchen login uses Supabase Auth.
+Les identifiants de connexion cuisine sont fournis dans le dossier de remise, section 7.1.
 
-Kitchen demo credentials are not committed to the public repository. They must be provided separately to the evaluator during the demo or by private message.
+## Flux de démonstration
 
-
+1. Lancer l'application avec `npm run start`.
+2. Scanner ou taper `TABLE_001`.
+3. Aller dans les paramètres pour configurer ses allergènes et filtrer automatiquement les plats, ou changer de thème.
+4. Ajouter un article du menu au panier.
+5. Envoyer la commande.
+6. Cliquer sur « Mes commandes » pour suivre le statut de la commande en temps réel.
+7. Sur un deuxième téléphone (pour mieux visualiser le temps réel), scanner ou taper `KITCHEN_001`.
+8. Se connecter avec le compte cuisine de démonstration.
+9. Ouvrir la file de commandes en direct.
+10. Interagir avec les commandes d'une table.
+11. Changer le statut de l'article : `pending` → `preparing` → `ready`.
+12. Aller dans « Mon menu ».
+13. Interagir avec les différents composants : créer un allergène, créer un produit, uploader une image, activer ou désactiver un produit.
 
 ## Scripts
 
-- `npm run start` - start Expo
-- `npm run start:tunnel` - start Expo with tunnel mode
-- `npm run ts:check` - run TypeScript checks
-- `npm test` - run tests
+| Commande | Description |
+|---|---|
+| `npm run start` | Lance le serveur de développement Expo |
+| `npm run start:tunnel` | Lance Expo en mode tunnel (ngrok) |
+| `npm run ts:check` | Vérifie les types TypeScript |
+| `npm test` | Exécute la suite de tests |
 
-## Known Limits
+## Limitations connues
 
-- The app requires an active connection.
-- There is no offline order queue.
-- Orders are immutable once submitted by the customer.
-- Payment is out of scope.
-- The bill request screen is interface/local feedback only; it is not persisted in Supabase.
-
+- L'application nécessite une connexion internet active.
+- Pas de file de commandes hors-ligne.
+- Le client ne peut pas modifier ou annuler une commande déjà envoyée.
+- La demande d'addition reste un retour d'interface local, non persisté dans Supabase.
