@@ -38,7 +38,7 @@ If the phone cannot reach the local development server, use the tunnel command:
 npm run start:tunnel
 ```
 
-If tunnel mode has ngrok/network issues, the recommended fallback is Android Studio:
+If tunnel mode has ngrok/network issues, either close ALL terminals or restart the computer. If that does not work the recommended fallback is Android Studio:
 
 1. Start an Android emulator.
 2. Run `npm run start`.
