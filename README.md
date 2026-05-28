@@ -18,7 +18,7 @@ Create a `.env` file at the project root:
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-THE .env file is in the zip file provided by mail 
+The .env file and the values are provided by email (or in the document requested by the professor)
 ```
 
 The `.env` file is required to connect the app to Supabase. It is ignored by Git and must be provided separately when testing the project.
@@ -38,7 +38,7 @@ If the phone cannot reach the local development server, use the tunnel command:
 npm run start:tunnel
 ```
 
-If tunnel mode has ngrok/network issues, close all terminal or restart computer and retry, if that doesn't work the recommended fallback is Android Studio:
+If tunnel mode has ngrok/network issues, either close ALL terminals or restart the computer. If that does not work the recommended fallback is Android Studio:
 
 1. Start an Android emulator.
 2. Run `npm run start`.
@@ -70,16 +70,6 @@ Kitchen login uses Supabase Auth.
 Kitchen demo credentials are not committed to the public repository. They must be provided separately to the evaluator during the demo or by private message.
 
 
-## Supabase Setup
-
-The database schema, RLS expectations, Realtime tables, and Storage bucket are documented in `database.md`.
-
-Important setup points:
-
-- Seed table QR values as `TABLE_001` to `TABLE_006`.
-- Create a public Supabase Storage bucket named `menu-images`.
-- Enable Supabase Realtime for `order_items`, `orders`, `sessions`, `status_updates`, and `menu_items`.
-- Create at least one Supabase Auth kitchen user for the demo and provide its credentials privately.
 
 ## Scripts
 
