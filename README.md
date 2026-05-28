@@ -18,7 +18,7 @@ Create a `.env` file at the project root:
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-I WILL PROVIDE KITCHEN DEMO CREDENTIALS SEPARATELY
+The .env file and the values are provided by email (or in the document requested by the professor)
 ```
 
 The `.env` file is required to connect the app to Supabase. It is ignored by Git and must be provided separately when testing the project.
@@ -69,28 +69,7 @@ Kitchen login uses Supabase Auth.
 
 Kitchen demo credentials are not committed to the public repository. They must be provided separately to the evaluator during the demo or by private message.
 
-## Demo Flow
 
-1. Start the app.
-2. Scan or type `TABLE_001`.
-3. Open the menu and add an item to the cart.
-4. Submit the order.
-5. Scan or type `KITCHEN_001`.
-6. Log in with the kitchen demo account.
-7. Open the live queue.
-8. Move an item from pending to preparing, then ready.
-9. Return to the customer live order screen to see the status update.
-
-## Supabase Setup
-
-The database schema, RLS expectations, Realtime tables, and Storage bucket are documented in `database.md`.
-
-Important setup points:
-
-- Seed table QR values as `TABLE_001` to `TABLE_006`.
-- Create a public Supabase Storage bucket named `menu-images`.
-- Enable Supabase Realtime for `order_items`, `orders`, `sessions`, `status_updates`, and `menu_items`.
-- Create at least one Supabase Auth kitchen user for the demo and provide its credentials privately.
 
 ## Scripts
 
