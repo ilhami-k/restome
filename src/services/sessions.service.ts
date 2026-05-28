@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { createChannelName } from '../lib/realtime';
+import { createChannelName, subscribeToPostgresChanges } from '../lib/realtime';
 import type { Session } from '../types';
 import { closeOpenOrderBySessionId } from './orders.service';
 
@@ -70,16 +70,11 @@ export async function closeSession(sessionId: string): Promise<void> {
 }
 
 export function subscribeToSessions(onChange: () => void) {
-  const channel = supabase
-    .channel(createChannelName('kitchen_sessions'))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => {
-      onChange();
-    })
-    .subscribe();
-
-  return () => {
-    void supabase.removeChannel(channel);
-  };
+  return subscribeToPostgresChanges(
+    createChannelName('kitchen_sessions'),
+    [{ table: 'sessions' }],
+    onChange
+  );
 }
 
 export function notifySessionJoined(sessionId: string, tableNumber: number): void {

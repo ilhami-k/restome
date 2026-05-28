@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { createChannelName } from '../lib/realtime';
+import { createChannelName, subscribeToPostgresChanges } from '../lib/realtime';
 import { ACTIVE_ITEM_STATUSES } from '../types';
 import type { ItemStatus, Order, OrderItem, StatusUpdate } from '../types';
 
@@ -128,37 +128,19 @@ export async function fetchLiveOrderItems(orderId: string): Promise<OrderItem[]>
 }
 
 export function subscribeToOrderItems(orderId: string, onChange: () => void) {
-  const channel = supabase
-    .channel(createChannelName(`order_items:${orderId}`))
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'order_items', filter: `order_id=eq.${orderId}` },
-      () => {
-        onChange();
-      }
-    )
-    .subscribe();
-
-  return () => {
-    void supabase.removeChannel(channel);
-  };
+  return subscribeToPostgresChanges(
+    createChannelName(`order_items:${orderId}`),
+    [{ table: 'order_items', filter: `order_id=eq.${orderId}` }],
+    onChange
+  );
 }
 
 export function subscribeToOrderBySessionId(sessionId: string, onChange: () => void) {
-  const channel = supabase
-    .channel(createChannelName(`orders:${sessionId}`))
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'orders', filter: `session_id=eq.${sessionId}` },
-      () => {
-        onChange();
-      }
-    )
-    .subscribe();
-
-  return () => {
-    void supabase.removeChannel(channel);
-  };
+  return subscribeToPostgresChanges(
+    createChannelName(`orders:${sessionId}`),
+    [{ table: 'orders', filter: `session_id=eq.${sessionId}` }],
+    onChange
+  );
 }
 
 export interface KitchenOrderItem extends OrderItem {
@@ -249,22 +231,11 @@ export async function fetchStatusUpdates(orderItemIds: string[]): Promise<Status
 }
 
 export function subscribeToKitchenOrderItems(onChange: () => void) {
-  const channel = supabase
-    .channel(createChannelName('kitchen_order_items'))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
-      onChange();
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-      onChange();
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => {
-      onChange();
-    })
-    .subscribe();
-
-  return () => {
-    void supabase.removeChannel(channel);
-  };
+  return subscribeToPostgresChanges(
+    createChannelName('kitchen_order_items'),
+    [{ table: 'order_items' }, { table: 'orders' }, { table: 'sessions' }],
+    onChange
+  );
 }
 
 export function subscribeToStatusUpdates(

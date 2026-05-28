@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../constants/colors';
 import { Messages } from '../../../constants/messages';
 import { KITCHEN_STATUS_FILTERS } from '../../../constants/ui';
 import { KitchenHeader } from '../components/KitchenHeader';
+import { KitchenBackButton } from '../components/KitchenBackButton';
+import { KitchenListStatusHeader } from '../components/KitchenListStatusHeader';
 import { OrderCard } from '../components/OrderCard';
 import { useKitchenOrders } from '../hooks/useKitchenOrders';
 import { useKitchenSessions } from '../hooks/useKitchenSessions';
+import { useOrderItemActions } from '../hooks/useOrderItemActions';
 import { confirmMarkUnavailable } from '../utils/order-actions';
+import { kitchenScreenStyles } from '../styles/screenStyles';
 import type { ItemStatus } from '../../../types';
 
 export default function KitchenTableOrderScreen() {
@@ -22,6 +25,7 @@ export default function KitchenTableOrderScreen() {
   const [closing, setClosing] = useState(false);
   const { groupedOrders, loading, error, setItemStatus, sendItemMessage } = useKitchenOrders(filter, currentSessionId);
   const { closeOpenSession } = useKitchenSessions();
+  const { updateItemStatus, sendMessage } = useOrderItemActions({ setItemStatus, sendItemMessage });
   const title = tableNumber ? `Table ${tableNumber}` : 'Table';
 
   function confirmCloseSession() {
@@ -53,39 +57,14 @@ export default function KitchenTableOrderScreen() {
     }
   }
 
-  async function updateItemStatus(itemId: string, status: ItemStatus, message?: string) {
-    try {
-      await setItemStatus(itemId, status, message);
-    } catch {
-      Alert.alert(Messages.common.error, Messages.kitchen.orderActionError);
-    }
-  }
-
-  async function sendMessage(itemId: string, message: string) {
-    try {
-      await sendItemMessage(itemId, message);
-      return true;
-    } catch {
-      Alert.alert(Messages.common.error, Messages.kitchen.orderActionError);
-      return false;
-    }
-  }
-
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={kitchenScreenStyles.container} edges={['top']}>
       <StatusBar style="light" />
 
       <KitchenHeader
         title={title}
-        style={styles.header}
-        leading={
-          <Pressable style={({ pressed }) => pressed && styles.pressed} onPress={() => router.back()} hitSlop={8}>
-            <View style={styles.backButtonContent}>
-              <Ionicons name="arrow-back" size={15} color={Colors.kitchenTextSecondary} />
-              <Text style={styles.back}>Retour</Text>
-            </View>
-          </Pressable>
-        }
+        style={kitchenScreenStyles.header}
+        leading={<KitchenBackButton label="Retour" onPress={() => router.back()} />}
         closeLabel={closing ? Messages.kitchen.closeSessionClosing : Messages.common.close}
         onClose={confirmCloseSession}
         closeDisabled={closing}
@@ -112,14 +91,9 @@ export default function KitchenTableOrderScreen() {
       <FlatList
         data={groupedOrders}
         keyExtractor={(group) => `${group.sessionId}-${group.orderId}`}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={kitchenScreenStyles.list}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          <>
-            {loading ? <ActivityIndicator color={Colors.primary} style={styles.loader} /> : null}
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          </>
-        }
+        ListHeaderComponent={<KitchenListStatusHeader loading={loading} error={error} />}
         renderItem={({ item: group }) => (
           <OrderCard
             group={group}
@@ -130,32 +104,15 @@ export default function KitchenTableOrderScreen() {
             onSendMessage={sendMessage}
           />
         )}
-        ListEmptyComponent={!loading && !error ? <Text style={styles.empty}>{Messages.kitchen.noActiveOrders}</Text> : null}
+        ListEmptyComponent={
+          !loading && !error ? <Text style={kitchenScreenStyles.empty}>{Messages.kitchen.noActiveOrders}</Text> : null
+        }
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.kitchenBackground,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    gap: 10,
-  },
-  back: {
-    color: Colors.kitchenTextSecondary,
-    fontSize: 13,
-  },
-  backButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
   pills: {
     flexDirection: 'row',
     gap: 8,
@@ -178,23 +135,6 @@ const styles = StyleSheet.create({
   pillTextActive: {
     color: Colors.white,
     fontWeight: '600',
-  },
-  list: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  loader: {
-    marginTop: 24,
-  },
-  errorText: {
-    color: Colors.statusUnavailable,
-    textAlign: 'center',
-    marginTop: 24,
-  },
-  empty: {
-    color: Colors.kitchenTextSecondary,
-    textAlign: 'center',
-    marginTop: 40,
   },
   pressed: {
     opacity: 0.8,

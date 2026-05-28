@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   createAllergen,
   createMenuItem,
@@ -8,44 +8,26 @@ import {
   updateMenuItemAvailability,
   type MenuItemInput,
 } from '../../../services/menu.service';
+import { useAsyncData } from '../../../hooks/useAsyncData';
 import { CATEGORIES } from '../../../types';
 import type { Allergen, MenuItem } from '../../../types';
 
+interface KitchenMenuData {
+  items: MenuItem[];
+  allergens: Allergen[];
+}
+
 export function useKitchenMenuItems(search: string) {
-  const [items, setItems] = useState<MenuItem[]>([]);
-  const [allergens, setAllergens] = useState<Allergen[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadData() {
-      setLoading(true);
-      try {
-        const [nextItems, nextAllergens] = await Promise.all([fetchKitchenMenuItems(), fetchAllergens()]);
-        if (mounted) {
-          setItems(nextItems);
-          setAllergens(nextAllergens);
-          setError(null);
-        }
-      } catch (loadError: unknown) {
-        if (mounted) {
-          setError(loadError instanceof Error ? loadError.message : 'Impossible de charger le menu.');
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadData();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { data, setData, loading, error } = useAsyncData<KitchenMenuData>(
+    async () => {
+      const [items, allergens] = await Promise.all([fetchKitchenMenuItems(), fetchAllergens()]);
+      return { items, allergens };
+    },
+    [],
+    { items: [], allergens: [] },
+    'Impossible de charger le menu.'
+  );
+  const { items, allergens } = data;
 
   const filteredItems = useMemo(
     () => items.filter((item) => item.name.toLowerCase().includes(search.toLowerCase())),
@@ -66,13 +48,14 @@ export function useKitchenMenuItems(search: string) {
     const nextAvailable = !item.available;
 
     await updateMenuItemAvailability(item.id, nextAvailable, message);
-    setItems((current) =>
-      current.map((entry) =>
+    setData((current) => ({
+      ...current,
+      items: current.items.map((entry) =>
         entry.id === item.id
           ? { ...entry, available: nextAvailable, availability_message: nextAvailable ? null : message }
           : entry
-      )
-    );
+      ),
+    }));
   }
 
   async function saveMenuItem(input: MenuItemInput, itemId?: string) {
@@ -82,12 +65,18 @@ export function useKitchenMenuItems(search: string) {
       await createMenuItem(input);
     }
 
-    setItems(await fetchKitchenMenuItems());
+    const nextItems = await fetchKitchenMenuItems();
+    setData((current) => ({ ...current, items: nextItems }));
   }
 
   async function addAllergen(name: string) {
     const allergen = await createAllergen(name);
-    setAllergens((current) => [...current, allergen].sort((left, right) => left.name.localeCompare(right.name, 'fr')));
+    setData((current) => ({
+      ...current,
+      allergens: [...current.allergens, allergen].sort((left, right) =>
+        left.name.localeCompare(right.name, 'fr')
+      ),
+    }));
     return allergen;
   }
 
